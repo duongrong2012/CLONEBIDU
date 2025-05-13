@@ -1,57 +1,58 @@
-# Quy tắc code trong dự án
+# Coding Rules in the Project
 
-## 1. Tối ưu và tái sử dụng code
+## 1. Code Optimization and Reusability
 
-- Luôn nghĩ đến việc code có thể tái sử dụng được không
-- Nếu có thể tái sử dụng, viết vào:
-  - `Utils/`: Các hàm tiện ích
-  - `Constants/`: Các hằng số
-- Ví dụ:
-  - Các hàm xử lý lỗi -> `error.utils.js`
-  - Các hằng số về status -> `constant.js`
-  - Các hàm validate -> `validation.utils.js`
+- Always consider if the code can be reused
+- If reusable, write in:
+  - `Utils/`: Utility functions
+  - `Constants/`: Constants
+- Examples:
+  - Error handling functions -> `error.utils.js`
+  - Status constants -> `constant.js`
+  - Validation functions -> `validation.utils.js`
 
-## 2. Tận dụng code có sẵn
+## 2. Leverage Existing Code
 
-- LUÔN kiểm tra source code hiện tại trước khi viết code mới
-- Tránh việc tạo mới không cần thiết
-- Đảm bảo code được thống nhất xuyên suốt dự án
-- Ví dụ:
-  - Kiểm tra các utils có sẵn
-  - Xem xét các patterns đã được sử dụng
-  - Tận dụng các hàm helper đã có
+- ALWAYS check existing source code before writing new code
+- Avoid unnecessary creation
+- Ensure code consistency throughout the project
+- Examples:
+  - Check existing utils
+  - Review existing patterns
+  - Utilize existing helper functions
 
-## 3. Code đầy đủ và hoàn chỉnh
+## 3. Complete and Comprehensive Code
 
-Khi implement một tính năng mới, phải làm đầy đủ các thành phần:
+When implementing a new feature, ensure all components are included:
 
-- Model: Schema và validation
+- Model: Schema and validation
 - Service: Business logic
 - Controller: Request handling
 - Route: API endpoints
-- Entry point: Cập nhật trong app.js
-- Đảm bảo feature có thể sử dụng được ngay
+- Entry point: Update in app.js
+- Ensure the feature is immediately usable
 
-## 4. Comment chuẩn xác
+## 4. Accurate Comments
 
-- Comment phải rõ ràng, đầy đủ và chính xác
-- Mục đích:
-  - Code dễ đọc
-  - Dễ hiểu
-  - Dễ bảo trì
-- Format comment:
+-Comments must write in english
+- Comments must be clear, complete, and accurate
+- Purpose:
+  - Readable code
+  - Easy to understand
+  - Easy to maintain
+- Comment format:
   ```javascript
   /**
-   * Mô tả chức năng của function/class
-   * @param {Type} paramName - Mô tả parameter
-   * @returns {Type} Mô tả giá trị trả về
+   * Description of function/class functionality
+   * @param {Type} paramName - Parameter description
+   * @returns {Type} Return value description
    */
   ```
 
-## Quy trình kiểm tra trước khi code
+## Pre-coding Checklist
 
-1. Kiểm tra source code hiện tại
-2. Tìm các đoạn code có thể tái sử dụng
-3. Xác định các utils/constants cần thiết
-4. Đảm bảo implement đầy đủ các thành phần
-5. Comment đầy đủ và chuẩn xác
+1. Check existing source code
+2. Find reusable code segments
+3. Identify required utils/constants
+4. Ensure complete implementation of all components
+5. Provide complete and accurate comments
