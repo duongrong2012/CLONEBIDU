@@ -8,6 +8,11 @@ router.get('/profile', verifyToken, userController.getProfile);
 router.put('/profile', verifyToken, userController.updateProfile);
 
 // Admin routes
-router.get('/:userId', verifyToken, checkRole(['ADMIN', 'SUPER_ADMIN']), userController.getUserById);
+router.get(
+  '/:userId',
+  verifyToken,
+  checkRole(['ADMIN', 'SUPER_ADMIN']),
+  userController.getUserById
+);
 
-module.exports = router; 
+module.exports = router;

@@ -8,12 +8,22 @@ const { USER_ROLES } = require('../Utils/constant');
 router.post('/requests', verifyToken, sellerController.submitSellerRequest);
 
 // Route cho admin xem danh sách yêu cầu
-router.get('/requests', verifyToken, checkRole(USER_ROLES.ADMIN), sellerController.getSellerRequests);
+router.get(
+  '/requests',
+  verifyToken,
+  checkRole(USER_ROLES.ADMIN),
+  sellerController.getSellerRequests
+);
 
 // Route cho admin xử lý yêu cầu
-router.patch('/requests/:requestId', verifyToken, checkRole(USER_ROLES.ADMIN), sellerController.processSellerRequest);
+router.patch(
+  '/requests/:requestId',
+  verifyToken,
+  checkRole(USER_ROLES.ADMIN),
+  sellerController.processSellerRequest
+);
 
 // Route cho người dùng xem yêu cầu của mình
 router.get('/my-requests', verifyToken, sellerController.getUserRequests);
 
-module.exports = router; 
+module.exports = router;

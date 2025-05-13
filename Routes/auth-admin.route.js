@@ -11,7 +11,17 @@ router.post('/logout', authAdminController.logout);
 
 // Protected routes
 router.get('/profile', verifyToken, checkRole([USER_ROLES.ADMIN]), authAdminController.getProfile);
-router.put('/profile', verifyToken, checkRole([USER_ROLES.ADMIN]), authAdminController.updateProfile);
-router.put('/change-password', verifyToken, checkRole([USER_ROLES.ADMIN]), authAdminController.changePassword);
+router.put(
+  '/profile',
+  verifyToken,
+  checkRole([USER_ROLES.ADMIN]),
+  authAdminController.updateProfile
+);
+router.put(
+  '/change-password',
+  verifyToken,
+  checkRole([USER_ROLES.ADMIN]),
+  authAdminController.changePassword
+);
 
-module.exports = router; 
+module.exports = router;
