@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 
 class AuthService {
   /**
-   * Đăng ký user mới
+   * Register a new user
    */
   async register(userData) {
     // Validate user input
@@ -18,9 +18,15 @@ class AuthService {
       throw new AppError(MESSAGES.AUTH.EMAIL_EXISTS, 400);
     }
 
-    const user = await User.create(userData);
+    const user = await User.create({
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      gender: userData.gender,
+    });
 
-    // Tạo tokens
+    // Create tokens
     const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
     const refreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
 

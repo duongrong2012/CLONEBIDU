@@ -4,23 +4,28 @@ const { TOKEN_COOKIE_CONFIG } = require('../Utils/constant');
 
 class AuthController {
   /**
-   * Đăng ký tài khoản mới
+   * Register a new user account
+   * @param {Object} req - Express request object
+   * @param {Object} req.body - Request body containing user data
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   * @returns {Object} Response with user information
    */
-  async register(req, res, next) {
+  register = async (req, res, next) => {
     try {
       const userData = req.body;
       const result = await authService.register(userData);
 
-      // Set tokens vào cookies
+      // Set tokens in cookies
       res.cookie('accessToken', result.tokens.accessToken, TOKEN_COOKIE_CONFIG.accessToken);
       res.cookie('refreshToken', result.tokens.refreshToken, TOKEN_COOKIE_CONFIG.refreshToken);
 
-      // Chỉ trả về thông tin user, không trả về tokens
+      // Only return user info, not tokens
       return res.status(201).json(response.success('User registered successfully', result.user));
     } catch (error) {
       next(error);
     }
-  }
+  };
 
   /**
    * Đăng nhập

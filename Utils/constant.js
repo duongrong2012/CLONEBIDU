@@ -65,6 +65,7 @@ const MESSAGES = {
     INVALID_TOKEN: 'Invalid token',
     TOKEN_REQUIRED: 'Access token is required',
     REFRESH_TOKEN_REQUIRED: 'Refresh token is required',
+    PASSWORD_DUPLICATE: 'New password must be different from old password',
   },
   USER: {
     NOT_FOUND: 'User not found',
@@ -88,7 +89,7 @@ const REGEX_PATTERNS = {
   // Email must be a valid email address
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   // Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, and one number
-  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/,
+  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
 };
 
 const DEFAULT_PAGINATION = {
@@ -104,7 +105,12 @@ const SELLER_REQUEST_STATUS = {
   REJECTED: 'REJECTED',
 };
 
+const ERROR_CODES = {
+  TOKEN_EXPIRED: 40101,
+};
+
 module.exports = {
+  ERROR_CODES,
   COOKIE_OPTIONS,
   TOKEN_COOKIE_CONFIG,
   JWT_CONFIG,
