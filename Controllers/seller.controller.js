@@ -1,64 +1,87 @@
 const sellerService = require('../Services/seller.service');
+const BaseController = require('./base.controller');
+const response = require('../Utils/response.utils');
 const { SELLER_REQUEST_STATUS } = require('../Utils/constant');
 
-// Gửi yêu cầu trở thành người bán
-exports.submitSellerRequest = async (req, res, next) => {
+class SellerController extends BaseController {
+  constructor() {
+    super(sellerService);
+  }
+
+  /**
+   * Submit a request to become a seller
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  submitSellerRequest = async (req, res, next) => {
     try {
-        await sellerService.checkExistingSellerStatus(req.user._id);
-        await sellerService.checkPendingRequest(req.user._id);
+      await this.service.checkExistingSellerStatus(req.user._id);
+      await this.service.checkPendingRequest(req.user._id);
 
-        const sellerRequest = await sellerService.createSellerRequest(req.user._id, req.body);
+      const sellerRequest = await this.service.createSellerRequest(req.user._id, req.body);
 
-        res.status(201).json({
-            success: true,
-            message: 'Yêu cầu của bạn đã được gửi thành công',
-            data: sellerRequest
-        });
+      res.status(201).json(response.success('Request submitted successfully', sellerRequest));
     } catch (error) {
-        next(error);
+      next(error);
     }
-};
+  };
 
-// Lấy danh sách yêu cầu (chỉ admin)
-exports.getSellerRequests = async (req, res, next) => {
+  /**
+   * Get all seller requests (admin only)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  getSellerRequests = async (req, res, next) => {
     try {
-        const requests = await sellerService.getAllRequests();
-        res.json({
-            success: true,
-            data: requests
-        });
+      const requests = await this.service.getAllRequests();
+      res.json(response.success('Requests retrieved successfully', requests));
     } catch (error) {
-        next(error);
+      next(error);
     }
-};
+  };
 
-// Xử lý yêu cầu (chỉ admin)
-exports.processSellerRequest = async (req, res, next) => {
+  /**
+   * Process a seller request (admin only)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  processSellerRequest = async (req, res, next) => {
     try {
-        const { requestId } = req.params;
-        const { status, rejectReason } = req.body;
+      const { requestId } = req.params;
+      const { status, rejectReason } = req.body;
 
-        const request = await sellerService.processRequest(requestId, status, rejectReason);
+      const request = await this.service.processRequest(requestId, status, rejectReason);
 
-        res.json({
-            success: true,
-            message: status === SELLER_REQUEST_STATUS.APPROVED ? 'Yêu cầu đã được chấp nhận' : 'Yêu cầu đã bị từ chối',
-            data: request
-        });
+      res.json(
+        response.success(
+          status === SELLER_REQUEST_STATUS.APPROVED
+            ? 'Request approved successfully'
+            : 'Request rejected successfully',
+          request
+        )
+      );
     } catch (error) {
-        next(error);
+      next(error);
     }
-};
+  };
 
-// Lấy thông tin yêu cầu của người dùng hiện tại
-exports.getUserRequests = async (req, res, next) => {
+  /**
+   * Get current user's requests
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  getUserRequests = async (req, res, next) => {
     try {
-        const requests = await sellerService.getUserRequests(req.user._id);
-        res.json({
-            success: true,
-            data: requests
-        });
+      const requests = await this.service.getUserRequests(req.user._id);
+      res.json(response.success('User requests retrieved successfully', requests));
     } catch (error) {
-        next(error);
+      next(error);
     }
-}; 
+  };
+}
+
+module.exports = new SellerController();

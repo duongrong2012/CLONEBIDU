@@ -1,19 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const sellerController = require('../Controllers/seller.controller');
-const { verifyToken, checkRole } = require('../Middlewares/auth.middleware');
+const { verifyToken } = require('../Middlewares/auth.middleware');
 const { USER_ROLES } = require('../Utils/constant');
 
-// Route cho người dùng gửi yêu cầu trở thành người bán
-router.post('/requests', verifyToken, sellerController.submitSellerRequest);
+// Routes for buyers
+router.post('/requests', verifyToken([USER_ROLES.BUYER]), sellerController.submitSellerRequest);
+router.get('/requests', verifyToken([USER_ROLES.BUYER]), sellerController.getUserRequests);
 
-// Route cho admin xem danh sách yêu cầu
-router.get('/requests', verifyToken, checkRole(USER_ROLES.ADMIN), sellerController.getSellerRequests);
+// Routes for admins
+router.get(
+  '/all-requests',
+  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
+  sellerController.getSellerRequests
+);
+router.patch(
+  '/requests/:requestId',
+  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
+  sellerController.processSellerRequest
+);
 
-// Route cho admin xử lý yêu cầu
-router.patch('/requests/:requestId', verifyToken, checkRole(USER_ROLES.ADMIN), sellerController.processSellerRequest);
-
-// Route cho người dùng xem yêu cầu của mình
-router.get('/my-requests', verifyToken, sellerController.getUserRequests);
-
-module.exports = router; 
+module.exports = router;

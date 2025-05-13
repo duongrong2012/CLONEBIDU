@@ -1,113 +1,136 @@
 const { AppError } = require('../Utils/error.utils');
-const { generateToken } = require('../Utils/jwt.utils');
-const { TOKEN_TYPES, MESSAGES } = require('../Utils/constant');
+const { generateToken, verifyToken } = require('../Utils/jwt.utils');
+const { TOKEN_TYPES, MESSAGES, USER_ROLES } = require('../Utils/constant');
 const validation = require('../Utils/validation.utils');
 const User = require('../Models/user.model');
-const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 class AuthService {
-    /**
-     * Đăng ký user mới
-     */
-    async register(userData) {
-        // Validate user input
-        validation.validateUserFields(userData);
+  /**
+   * Register a new user
+   */
+  async register(userData) {
+    // Validate user input
+    validation.validateUserFields(userData);
 
-        const existingUser = await User.findOne({ email: userData.email });
-        if (existingUser) {
-            throw new AppError(MESSAGES.AUTH.EMAIL_EXISTS, 400);
-        }
-
-        const user = await User.create(userData);
-
-        // Tạo tokens
-        const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
-        const refreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
-
-        return {
-            user: user.toPublicJSON(),
-            tokens: { accessToken, refreshToken }
-        };
+    const existingUser = await User.findOne({ email: userData.email });
+    if (existingUser) {
+      throw new AppError(MESSAGES.AUTH.EMAIL_EXISTS, 400);
     }
 
-    /**
-     * Đăng nhập với email và password
-     */
-    async login(email, password) {
-        // Validate input
-        validation.validateEmail(email);
-        validation.validatePassword(password);
+    const user = await User.create({
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      gender: userData.gender,
+    });
 
-        const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
-            throw new AppError(MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
-        }
+    // Create tokens
+    const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
+    const refreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
 
-        if (!user.isActive) {
-            throw new AppError(MESSAGES.AUTH.ACCOUNT_DEACTIVATED, 403);
-        }
+    return {
+      user: user.toPublicJSON(),
+      tokens: { accessToken, refreshToken },
+    };
+  }
 
-        // Tạo tokens
-        const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
-        const refreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
+  /**
+   * Login with email and password
+   */
+  async login(email, password) {
+    // Validate email format
+    validation.validateEmail(email);
 
-        return {
-            user: user.toPublicJSON(),
-            tokens: { accessToken, refreshToken }
-        };
+    // Find user by email
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      throw new AppError(MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
     }
 
-    /**
-     * Đổi mật khẩu
-     */
-    async changePassword(userId, oldPassword, newPassword) {
-        // Validate new password
-        validation.validatePassword(newPassword);
-
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new AppError(MESSAGES.USER.NOT_FOUND, 404);
-        }
-
-        if (!(await user.comparePassword(oldPassword))) {
-            throw new AppError(MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
-        }
-
-        user.password = newPassword;
-        await user.save();
-
-        return { message: MESSAGES.AUTH.PASSWORD_CHANGED };
+    // Check if account is active
+    if (!user.isActive) {
+      throw new AppError(MESSAGES.AUTH.ACCOUNT_INACTIVE, 403);
     }
 
-    /**
-     * Refresh access token
-     */
-    async refreshToken(refreshToken) {
-        if (!refreshToken) {
-            throw new AppError(MESSAGES.AUTH.REFRESH_TOKEN_REQUIRED, 401);
-        }
-
-        try {
-            // Verify refresh token
-            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-
-            // Kiểm tra user có tồn tại và còn active
-            const user = await User.findById(decoded.userId);
-            if (!user || !user.isActive) {
-                throw new AppError(MESSAGES.AUTH.INVALID_TOKEN, 401);
-            }
-
-            // Tạo access token mới
-            const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
-
-            return { accessToken };
-        } catch (error) {
-            if (error.name === 'TokenExpiredError') {
-                throw new AppError(MESSAGES.AUTH.TOKEN_EXPIRED, 401);
-            }
-            throw new AppError(MESSAGES.AUTH.INVALID_TOKEN, 401);
-        }
+    // Verify password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError(MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
     }
+
+    // Generate tokens
+    const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
+    const refreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
+
+    return {
+      user: user.toPublicJSON(),
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    };
+  }
+
+  /**
+   * Change password
+   */
+  async changePassword(userId, oldPassword, newPassword) {
+    // Validate new password
+    validation.validatePassword(newPassword);
+
+    if (oldPassword === newPassword) {
+      throw new AppError(MESSAGES.AUTH.PASSWORD_DUPLICATE, 400);
+    }
+
+    const user = await User.findById(userId).select('+password');
+
+    if (!user) {
+      throw new AppError(MESSAGES.USER.NOT_FOUND, 404);
+    }
+
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      throw new AppError(MESSAGES.AUTH.INVALID_PASSWORD, 401);
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return { message: MESSAGES.AUTH.PASSWORD_CHANGED };
+  }
+
+  /**
+   * Refresh access token
+   */
+  async refreshToken(refreshToken) {
+    const decoded = verifyToken(refreshToken, TOKEN_TYPES.REFRESH);
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      throw new AppError(MESSAGES.USER.NOT_FOUND, 404);
+    }
+
+    if (!user.isActive) {
+      throw new AppError(MESSAGES.AUTH.ACCOUNT_INACTIVE, 403);
+    }
+
+    // Check if user is not admin
+    if ([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(user.role)) {
+      throw new AppError(MESSAGES.AUTH.FORBIDDEN, 403);
+    }
+
+    // Generate new tokens
+    const newAccessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
+    const newRefreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
 }
 
-module.exports = new AuthService(); 
+module.exports = new AuthService();

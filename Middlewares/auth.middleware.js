@@ -1,50 +1,122 @@
 const { AppError } = require('../Utils/error.utils');
-const jwt = require('../Utils/jwt.utils');
-const { MESSAGES, TOKEN_TYPES } = require('../Utils/constant');
+const { verifyToken: verifyJwtToken } = require('../Utils/jwt.utils');
+const { MESSAGES, TOKEN_TYPES, ERROR_CODES } = require('../Utils/constant');
 const User = require('../Models/user.model');
 
-
 /**
- * Middleware để verify JWT token và thêm thông tin user vào request
+ * Middleware để verify JWT access token và kiểm tra role
+ * @param {Array<string>} allowedRoles - Mảng các role được phép truy cập
  */
-const verifyToken = async (req, res, next) => {
+const verifyToken = (allowedRoles = []) => {
+  return async (req, res, next) => {
     try {
-        const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
+      const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
 
-        const decoded = jwt.verifyToken(token, TOKEN_TYPES.ACCESS);
-        req.user = { _id: decoded.userId };
+      if (!token) {
+        throw new AppError(MESSAGES.AUTH.TOKEN_REQUIRED, 401);
+      }
 
-        next();
+      let decoded;
+      try {
+        decoded = verifyJwtToken(token, TOKEN_TYPES.ACCESS);
+      } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+          throw new AppError(MESSAGES.AUTH.TOKEN_EXPIRED, 401, {
+            code: ERROR_CODES.TOKEN_EXPIRED,
+          });
+        }
+        throw new AppError(MESSAGES.AUTH.INVALID_TOKEN, 401);
+      }
+
+      // Check if user exists
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        throw new AppError(MESSAGES.USER.NOT_FOUND, 404);
+      }
+
+      // Check if user is active
+      if (!user.isActive) {
+        throw new AppError(MESSAGES.AUTH.ACCOUNT_INACTIVE, 403);
+      }
+
+      // Check if user has allowed role
+      if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        throw new AppError(MESSAGES.AUTH.FORBIDDEN, 403);
+      }
+
+      req.user = { _id: decoded.userId, role: user.role };
+      next();
     } catch (error) {
-        next(error);
+      next(error);
     }
+  };
 };
 
 /**
  * Middleware để kiểm tra role của user
  * @param {Array<string>} roles - Mảng các role được phép truy cập
  */
-const checkRole = (roles) => {
-    return async (req, res, next) => {
-        try {
-            const user = await User.findById(req.user._id);
+const checkRole = roles => {
+  return async (req, res, next) => {
+    try {
+      if (!roles.includes(req.user.role)) {
+        throw new AppError(MESSAGES.AUTH.FORBIDDEN, 403);
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
 
-            if (!user) {
-                throw new AppError(MESSAGES.USER.NOT_FOUND, 404);
-            }
+/**
+ * Middleware để verify refresh token và kiểm tra role
+ * @param {Array<string>} allowedRoles - Mảng các role được phép refresh token
+ */
+const verifyRefreshToken = (allowedRoles = []) => {
+  return async (req, res, next) => {
+    try {
+      const refreshToken =
+        req.cookies.refreshToken || req.headers['x-refresh-token'] || req.body.refreshToken;
+      if (!refreshToken) {
+        throw new AppError(MESSAGES.AUTH.TOKEN_REQUIRED, 401);
+      }
 
-            if (!roles.includes(user.role)) {
-                throw new AppError(MESSAGES.AUTH.FORBIDDEN, 403);
-            }
-
-            next();
-        } catch (error) {
-            next(error);
+      let decoded;
+      try {
+        decoded = verifyJwtToken(refreshToken, TOKEN_TYPES.REFRESH);
+      } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+          throw new AppError(MESSAGES.AUTH.TOKEN_EXPIRED, 401);
         }
-    };
+        throw new AppError(MESSAGES.AUTH.INVALID_TOKEN, 401);
+      }
+
+      // Check user
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        throw new AppError(MESSAGES.USER.NOT_FOUND, 404);
+      }
+
+      if (!user.isActive) {
+        throw new AppError(MESSAGES.AUTH.ACCOUNT_INACTIVE, 403);
+      }
+
+      if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        throw new AppError(MESSAGES.AUTH.FORBIDDEN, 403);
+      }
+
+      req.user = { _id: user._id, role: user.role };
+      req.refreshToken = refreshToken;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 };
 
 module.exports = {
-    verifyToken,
-    checkRole
-}; 
+  verifyToken,
+  checkRole,
+  verifyRefreshToken,
+};

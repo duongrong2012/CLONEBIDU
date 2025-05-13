@@ -1,54 +1,52 @@
-
 const User = require('../Models/user.model');
 const { AppError } = require('../Utils/error.utils');
-const jwt = require('../Utils/jwt.utils');
+const BaseService = require('./base.service');
 
-class UserService {
-    /**
-     * Đăng ký user mới
-     */
-    async register(userData) {
-        const existingUser = await User.findOne({ email: userData.email });
-        if (existingUser) {
-            throw new AppError('Email already exists', 400);
-        }
+class UserService extends BaseService {
+  constructor() {
+    super(User);
+  }
 
-        const user = await User.create(userData);
-        return user.toPublicJSON();
+  /**
+   * Register a new user
+   * @param {Object} userData - User data
+   * @returns {Promise<Object>} Created user
+   */
+  async register(userData) {
+    const existingUser = await this.model.findOne({ email: userData.email });
+    if (existingUser) {
+      throw new AppError('Email already exists', 400);
     }
 
-    /**
-     * Lấy thông tin user theo ID
-     */
-    async getUserById(userId) {
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new AppError('User not found', 404);
-        }
-        return user.toPublicJSON();
-    }
+    const user = await this.create(userData);
+    return user.toPublicJSON();
+  }
 
-    /**
-     * Cập nhật thông tin user
-     */
-    async updateUser(userId, updateData) {
-        // Không cho phép cập nhật email và password qua method này
-        delete updateData.email;
-        delete updateData.password;
-        delete updateData.role;
+  /**
+   * Get user information by ID
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} User information
+   */
+  async getUserById(userId) {
+    const user = await this.getById(userId);
+    return user.toPublicJSON();
+  }
 
-        const user = await User.findByIdAndUpdate(
-            userId,
-            updateData,
-            { new: true, runValidators: true }
-        );
+  /**
+   * Update user information
+   * @param {string} userId - User ID
+   * @param {Object} updateData - Data to update
+   * @returns {Promise<Object>} Updated user
+   */
+  async updateUser(userId, updateData) {
+    // Do not allow updating email and password through this method
+    delete updateData.email;
+    delete updateData.password;
+    delete updateData.role;
 
-        if (!user) {
-            throw new AppError('User not found', 404);
-        }
-
-        return user.toPublicJSON();
-    }
+    const user = await this.update(userId, updateData);
+    return user.toPublicJSON();
+  }
 }
 
-module.exports = new UserService(); 
+module.exports = new UserService();
