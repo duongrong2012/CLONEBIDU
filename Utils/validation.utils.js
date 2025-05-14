@@ -45,36 +45,6 @@ class ValidationUtils {
   }
 
   /**
-   * Kiểm tra các trường bắt buộc của user
-   * @param {Object} userData - Dữ liệu user cần kiểm tra
-   * @param {string} userData.email - Email của user
-   * @param {string} userData.password - Password của user
-   * @param {string} userData.firstName - Tên của user
-   * @param {string} userData.lastName - Họ của user
-   * @param {string} userData.gender - Giới tính của user
-   * @returns {boolean} true nếu tất cả các trường hợp lệ
-   * @throws {AppError} Nếu có bất kỳ trường nào không hợp lệ
-   */
-  validateUserFields(userData) {
-    const { email, password, firstName, lastName, gender } = userData;
-
-    if (!firstName) {
-      throw new AppError(MESSAGES.VALIDATION.REQUIRED_FIRST_NAME, 400);
-    }
-    if (!lastName) {
-      throw new AppError(MESSAGES.VALIDATION.REQUIRED_LAST_NAME, 400);
-    }
-    if (!gender) {
-      throw new AppError(MESSAGES.VALIDATION.REQUIRED_GENDER, 400);
-    }
-
-    this.validateEmail(email);
-    this.validatePassword(password);
-
-    return true;
-  }
-
-  /**
    * Kiểm tra và format các tham số phân trang
    * @param {Object} query - Query parameters từ request
    * @param {number} [query.page] - Số trang
