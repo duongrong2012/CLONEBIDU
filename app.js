@@ -8,7 +8,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Import routes
-const { authBuyerRoutes, buyerRoutes, sellerRoutes, authAdminRoutes } = require('./Routes');
+const { authBuyerRoutes } = require('./Routes');
 
 // Import middlewares
 const { errorHandler } = require('./Middlewares');
@@ -32,9 +32,6 @@ app.use(
 
 // Routes
 app.use('/auth-buyer', authBuyerRoutes);
-app.use('/buyer', buyerRoutes);
-app.use('/seller', sellerRoutes);
-app.use('/auth-admin', authAdminRoutes);
 
 // Connect to MongoDB
 mongoose
