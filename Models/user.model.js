@@ -6,25 +6,22 @@ const { USER_ROLES, AUTH_PROVIDERS, GENDERS } = require('../Utils/constant');
  * Shop information schema
  * Contains all necessary fields for seller shop information
  */
-const shopSchema = new mongoose.Schema(
-  {
-    birthday: String,
-    identityNumber: String,
-    bankName: String,
-    bankBranch: String,
-    taxCode: String,
-    national: String,
-    shop: String,
-    shopName: String,
-    isCompanyRegistered: Boolean,
-    address: String,
-    province: String,
-    district: String,
-    ward: String,
-    currentDigitalPlatforms: [String],
-  },
-  { _id: false }
-);
+const shopSchema = new mongoose.Schema({
+  birthday: String,
+  identityNumber: String,
+  bankName: String,
+  bankBranch: String,
+  taxCode: String,
+  national: String,
+  shop: String,
+  shopName: String,
+  isCompanyRegistered: Boolean,
+  address: String,
+  province: String,
+  district: String,
+  ward: String,
+  currentDigitalPlatforms: [String],
+});
 
 /**
  * User schema

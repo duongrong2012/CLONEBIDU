@@ -16,17 +16,22 @@ class JWTUtils {
 
   /**
    * Generate JWT token
-   * @param {string} userId - User ID
+   * @param {Object} user - User information
    * @param {string} type - Token type (access or refresh)
    * @returns {string} JWT token
    * @throws {AppError} If type is invalid
    */
-  generateToken(userId, type = TOKEN_TYPES.ACCESS) {
+  generateToken(user, type = TOKEN_TYPES.ACCESS) {
     try {
       const config =
         type === TOKEN_TYPES.ACCESS ? JWT_CONFIG.ACCESS_TOKEN : JWT_CONFIG.REFRESH_TOKEN;
 
-      return jwt.sign({ userId }, config.SECRET, { expiresIn: config.EXPIRES_IN });
+      // Create payload from user object, excluding sensitive fields
+      const userObject = user.toObject ? user.toObject() : user;
+      // eslint-disable-next-line no-unused-vars
+      const { password, __v, ...payload } = userObject;
+
+      return jwt.sign(payload, config.SECRET, { expiresIn: config.EXPIRES_IN });
     } catch {
       throw new AppError(MESSAGES.AUTH.INVALID_TOKEN, 500);
     }
