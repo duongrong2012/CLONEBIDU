@@ -92,7 +92,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password trước khi lưu
+// Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
 
@@ -105,12 +105,12 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-// Method kiểm tra password
+// Method to check password
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method lấy thông tin public của user
+// Method to get public user information
 userSchema.methods.toPublicJSON = function () {
   const user = this.toObject();
   delete user.password;

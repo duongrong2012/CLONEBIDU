@@ -18,7 +18,7 @@ class AuthService {
 
     const user = await User.create(userData);
 
-    // Tạo tokens
+    // Create tokens
     const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
     const refreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
 

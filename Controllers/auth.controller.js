@@ -11,11 +11,20 @@ class AuthController {
       const userData = req.body;
       const result = await authService.register(userData);
 
-      // Set tokens vào cookies
-      res.cookie('accessToken', result.tokens.accessToken, TOKEN_COOKIE_CONFIG.accessToken);
-      res.cookie('refreshToken', result.tokens.refreshToken, TOKEN_COOKIE_CONFIG.refreshToken);
+      // Set tokens in cookies
+      res.cookie('accessToken', result.tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: TOKEN_COOKIE_CONFIG.accessToken.maxAge,
+      });
 
-      // Chỉ trả về thông tin user, không trả về tokens
+      res.cookie('refreshToken', result.tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: TOKEN_COOKIE_CONFIG.refreshToken.maxAge,
+      });
+
+      // Only return user information, not tokens
       return res.status(201).json(response.success('User registered successfully', result.user));
     } catch (error) {
       next(error);
