@@ -1,6 +1,5 @@
 const { AppError } = require('../Utils/error.utils');
-const { generateToken } = require('../Utils/jwt.utils');
-const { TOKEN_TYPES, MESSAGES } = require('../Utils/constant');
+const { MESSAGES } = require('../Utils/constant');
 const validation = require('../Utils/validation.utils');
 const User = require('../Models/user.model');
 class AuthService {
@@ -24,13 +23,8 @@ class AuthService {
       gender: userData.gender,
     });
 
-    // Create tokens
-    const accessToken = generateToken(user._id, TOKEN_TYPES.ACCESS);
-    const refreshToken = generateToken(user._id, TOKEN_TYPES.REFRESH);
-
     return {
       user: user.toPublicJSON(),
-      tokens: { accessToken, refreshToken },
     };
   }
 }

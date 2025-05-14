@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../Controllers/auth.controller');
+const { validateUserFields } = require('../Middlewares');
 
 /**
  * @swagger
@@ -34,6 +35,6 @@ const authController = require('../Controllers/auth.controller');
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/register', authController.register);
+router.post('/register', validateUserFields, authController.register);
 
 module.exports = router;
