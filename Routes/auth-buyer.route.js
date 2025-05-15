@@ -5,10 +5,10 @@ const { validateUserFields } = require('../Middlewares');
 
 /**
  * @swagger
- * /auth-buyer/register:
+ * /api/auth-buyer/register:
  *   post:
- *     summary: Register a new buyer account
- *     tags: [Auth]
+ *     summary: Register a new user account
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -17,17 +17,44 @@ const { validateUserFields } = require('../Middlewares');
  *             $ref: '#/components/schemas/RegisterRequest'
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: Registration successful
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
+ *               $ref: '#/components/schemas/RegisterResponse'
  *       400:
- *         description: Invalid input or email already exists
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ValidationErrorResponse'
+ *             examples:
+ *               missingFields:
+ *                 value:
+ *                   status: 'error'
+ *                   message: 'Validation error'
+ *                   errors: [
+ *                     { field: 'firstName', message: 'First name is required' },
+ *                     { field: 'lastName', message: 'Last name is required' },
+ *                     { field: 'gender', message: 'Gender is required' }
+ *                   ]
+ *               invalidFormat:
+ *                 value:
+ *                   status: 'error'
+ *                   message: 'Validation error'
+ *                   errors: [
+ *                     { field: 'email', message: 'Invalid email format' },
+ *                     { field: 'password', message: 'Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character' }
+ *                   ]
+ *       409:
+ *         description: Email already exists
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               status: 'error'
+ *               message: 'Email already exists'
  *       500:
  *         description: Server error
  *         content:
