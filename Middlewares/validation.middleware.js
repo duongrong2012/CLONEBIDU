@@ -1,5 +1,5 @@
 const { AppError } = require('../Utils/error.utils');
-const { MESSAGES, REGEX_PATTERNS } = require('../Utils/constant');
+const { MESSAGES, REGEX_PATTERNS, GENDERS } = require('../Utils/constant');
 
 /**
  * Middleware to validate user registration fields
@@ -36,6 +36,11 @@ const validateUserFields = (req, res, next) => {
   }
   if (!REGEX_PATTERNS.PASSWORD.test(password)) {
     return next(new AppError(MESSAGES.VALIDATION.PASSWORD_LENGTH, 400));
+  }
+
+  // Validate gender value against allowed values
+  if (!Object.values(GENDERS).includes(gender)) {
+    return next(new AppError(MESSAGES.VALIDATION.INVALID_GENDER, 400));
   }
 
   next();

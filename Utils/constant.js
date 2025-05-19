@@ -81,6 +81,7 @@ const MESSAGES = {
     REQUIRED_FIRST_NAME: 'First name is required',
     REQUIRED_LAST_NAME: 'Last name is required',
     REQUIRED_GENDER: 'Gender is required',
+    INVALID_GENDER: 'Invalid gender value. Allowed values are: MALE, FEMALE, OTHER',
   },
 };
 
