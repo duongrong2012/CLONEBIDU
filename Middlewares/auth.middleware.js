@@ -4,10 +4,10 @@ const { MESSAGES, TOKEN_TYPES, ERROR_CODES } = require('../Utils/constant');
 const User = require('../Models/user.model');
 
 /**
- * Middleware để verify JWT access token và kiểm tra role
- * @param {Array<string>} allowedRoles - Mảng các role được phép truy cập
+ * Middleware to verify JWT access token and check role
+ * @param {Array<string>} allowedRoles - Array of allowed roles
  */
-const verifyToken = (allowedRoles = []) => {
+const verifyAccessToken = (allowedRoles = []) => {
   return async (req, res, next) => {
     try {
       const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
@@ -53,8 +53,8 @@ const verifyToken = (allowedRoles = []) => {
 };
 
 /**
- * Middleware để kiểm tra role của user
- * @param {Array<string>} roles - Mảng các role được phép truy cập
+ * Middleware to check user role
+ * @param {Array<string>} roles - Array of allowed roles
  */
 const checkRole = roles => {
   return async (req, res, next) => {
@@ -70,8 +70,8 @@ const checkRole = roles => {
 };
 
 /**
- * Middleware để verify refresh token và kiểm tra role
- * @param {Array<string>} allowedRoles - Mảng các role được phép refresh token
+ * Middleware to verify refresh token and check role
+ * @param {Array<string>} allowedRoles - Array of allowed roles
  */
 const verifyRefreshToken = (allowedRoles = []) => {
   return async (req, res, next) => {
@@ -116,7 +116,7 @@ const verifyRefreshToken = (allowedRoles = []) => {
 };
 
 module.exports = {
-  verifyToken,
+  verifyAccessToken,
   checkRole,
   verifyRefreshToken,
 };

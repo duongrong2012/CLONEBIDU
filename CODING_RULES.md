@@ -48,6 +48,7 @@ When implementing a new feature, ensure all components are included:
    * @returns {Type} Return value description
    */
   ```
+  ## 5. Everything must write in English (including code,comment,...)
 
 ## Pre-coding Checklist
 
@@ -56,3 +57,4 @@ When implementing a new feature, ensure all components are included:
 3. Identify required utils/constants
 4. Ensure complete implementation of all components
 5. Provide complete and accurate comments
+6. Everything must write in English

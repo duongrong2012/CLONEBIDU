@@ -1,14 +1,14 @@
 /**
- * Utility class để xử lý response trả về cho client
- * Đảm bảo format response nhất quán trong toàn bộ ứng dụng
+ * Utility class for handling responses to clients
+ * Ensures consistent response format throughout the application
  */
 class ResponseUtils {
   /**
-   * Tạo response thành công
-   * @param {string} message - Thông báo thành công
-   * @param {any} [data=null] - Dữ liệu trả về (optional)
+   * Create success response
+   * @param {string} message - Success message
+   * @param {any} [data=null] - Response data (optional)
    * @param {number} [statusCode=200] - HTTP status code
-   * @returns {Object} Response object
+   * @returns {Object} Formatted success response
    * @example
    * // returns { status: 'success', code: 200, message: 'User created', data: { id: 1 } }
    * success('User created', { id: 1 })
@@ -23,16 +23,16 @@ class ResponseUtils {
   }
 
   /**
-   * Tạo response lỗi
-   * @param {string} message - Thông báo lỗi
-   * @param {number} [statusCode=400] - HTTP status code
-   * @param {Object} [errors=null] - Chi tiết các lỗi (optional)
-   * @returns {Object} Response object
+   * Create error response
+   * @param {string} message - Error message
+   * @param {number} [statusCode=500] - HTTP status code
+   * @param {any} [errors=null] - Error details (optional)
+   * @returns {Object} Formatted error response
    * @example
    * // returns { status: 'error', code: 400, message: 'Validation failed', errors: { email: 'Invalid email' } }
    * error('Validation failed', 400, { email: 'Invalid email' })
    */
-  error(message, statusCode = 400, errors = null) {
+  error(message, statusCode = 500, errors = null) {
     return {
       status: 'error',
       code: statusCode,

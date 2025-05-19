@@ -1,13 +1,13 @@
 /**
- * Custom Error class để xử lý các lỗi trong ứng dụng
+ * Custom Error class for handling application errors
  * @extends Error
  */
 class AppError extends Error {
   /**
-   * Tạo một instance của AppError
-   * @param {string} message - Thông báo lỗi
+   * Create an instance of AppError
+   * @param {string} message - Error message
    * @param {number} statusCode - HTTP status code
-   * @param {Object} [errors] - Chi tiết các lỗi (optional)
+   * @param {Object} [errors] - Error details (optional)
    */
   constructor(message, statusCode, errors = null) {
     super(message);
@@ -22,15 +22,15 @@ class AppError extends Error {
 }
 
 /**
- * Utility class để xử lý các lỗi trong ứng dụng
+ * Utility class for handling application errors
  */
 class ErrorUtils {
   /**
-   * Xử lý lỗi từ Mongoose
-   * @param {Error} err - Lỗi từ Mongoose
-   * @returns {AppError} Custom error object
+   * Handle Mongoose errors
+   * @param {Error} err - Mongoose error
+   * @returns {AppError} Formatted error
    */
-  handleMongooseError(err) {
+  static handleMongooseError(err) {
     if (err.name === 'ValidationError') {
       const errors = {};
       Object.keys(err.errors).forEach(key => {
@@ -48,11 +48,11 @@ class ErrorUtils {
   }
 
   /**
-   * Xử lý lỗi từ JWT
-   * @param {Error} err - Lỗi từ JWT
-   * @returns {AppError} Custom error object
+   * Handle JWT errors
+   * @param {Error} err - JWT error
+   * @returns {AppError} Formatted error
    */
-  handleJWTError(err) {
+  static handleJWTError(err) {
     if (err.name === 'JsonWebTokenError') {
       return new AppError('Invalid token', 401);
     }

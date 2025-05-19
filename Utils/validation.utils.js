@@ -2,14 +2,14 @@ const { REGEX_PATTERNS, MESSAGES, DEFAULT_PAGINATION } = require('./constant');
 const { AppError } = require('./error.utils');
 
 /**
- * Utility class để xử lý validation trong ứng dụng
+ * Utility class for handling validation in the application
  */
 class ValidationUtils {
   /**
-   * Kiểm tra email hợp lệ
-   * @param {string} email - Email cần kiểm tra
-   * @returns {boolean} true nếu email hợp lệ
-   * @throws {AppError} Nếu email không hợp lệ
+   * Check if email is valid
+   * @param {string} email - Email to validate
+   * @returns {boolean} true if email is valid
+   * @throws {AppError} If email is invalid
    * @example
    * validateEmail('user@example.com') // returns true
    * validateEmail('invalid-email') // throws AppError
@@ -25,11 +25,11 @@ class ValidationUtils {
   }
 
   /**
-   * Kiểm tra password hợp lệ
-   * Yêu cầu: ít nhất 6 ký tự, bao gồm chữ hoa, chữ thường và số
-   * @param {string} password - Password cần kiểm tra
-   * @returns {boolean} true nếu password hợp lệ
-   * @throws {AppError} Nếu password không hợp lệ
+   * Check if password is valid
+   * Requirements: at least 6 characters, including uppercase, lowercase and numbers
+   * @param {string} password - Password to validate
+   * @returns {boolean} true if password is valid
+   * @throws {AppError} If password is invalid
    * @example
    * validatePassword('Test123') // returns true
    * validatePassword('weak') // throws AppError
@@ -45,43 +45,13 @@ class ValidationUtils {
   }
 
   /**
-   * Kiểm tra các trường bắt buộc của user
-   * @param {Object} userData - Dữ liệu user cần kiểm tra
-   * @param {string} userData.email - Email của user
-   * @param {string} userData.password - Password của user
-   * @param {string} userData.firstName - Tên của user
-   * @param {string} userData.lastName - Họ của user
-   * @param {string} userData.gender - Giới tính của user
-   * @returns {boolean} true nếu tất cả các trường hợp lệ
-   * @throws {AppError} Nếu có bất kỳ trường nào không hợp lệ
-   */
-  validateUserFields(userData) {
-    const { email, password, firstName, lastName, gender } = userData;
-
-    if (!firstName) {
-      throw new AppError(MESSAGES.VALIDATION.REQUIRED_FIRST_NAME, 400);
-    }
-    if (!lastName) {
-      throw new AppError(MESSAGES.VALIDATION.REQUIRED_LAST_NAME, 400);
-    }
-    if (!gender) {
-      throw new AppError(MESSAGES.VALIDATION.REQUIRED_GENDER, 400);
-    }
-
-    this.validateEmail(email);
-    this.validatePassword(password);
-
-    return true;
-  }
-
-  /**
-   * Kiểm tra và format các tham số phân trang
-   * @param {Object} query - Query parameters từ request
-   * @param {number} [query.page] - Số trang
-   * @param {number} [query.limit] - Số lượng item mỗi trang
-   * @param {string} [query.sortBy] - Trường để sắp xếp
-   * @param {string} [query.sortOrder] - Thứ tự sắp xếp ('asc' hoặc 'desc')
-   * @returns {Object} Object chứa các tham số phân trang đã được format
+   * Check and format pagination parameters
+   * @param {Object} query - Query parameters from request
+   * @param {number} [query.page] - Page number
+   * @param {number} [query.limit] - Number of items per page
+   * @param {string} [query.sortBy] - Field to sort by
+   * @param {string} [query.sortOrder] - Sort order ('asc' or 'desc')
+   * @returns {Object} Object containing formatted pagination parameters
    * @example
    * // returns { page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' }
    * validatePagination({ page: '1', limit: '10' })
