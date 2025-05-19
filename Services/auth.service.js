@@ -1,15 +1,11 @@
 const { AppError } = require('../Utils/error.utils');
 const { MESSAGES } = require('../Utils/constant');
-const validation = require('../Utils/validation.utils');
 const User = require('../Models/user.model');
 class AuthService {
   /**
    * Register a new user
    */
   async register(userData) {
-    // Validate user input
-    validation.validateUserFields(userData);
-
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) {
       throw new AppError(MESSAGES.AUTH.EMAIL_EXISTS, 400);

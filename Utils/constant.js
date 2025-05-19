@@ -65,7 +65,6 @@ const MESSAGES = {
     INVALID_TOKEN: 'Invalid token',
     TOKEN_REQUIRED: 'Access token is required',
     REFRESH_TOKEN_REQUIRED: 'Refresh token is required',
-    PASSWORD_DUPLICATE: 'New password must be different from old password',
   },
   USER: {
     NOT_FOUND: 'User not found',
