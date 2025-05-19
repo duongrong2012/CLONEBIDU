@@ -1,35 +1,26 @@
 const authService = require('../Services/auth.service');
 const response = require('../Utils/response.utils');
-const { TOKEN_COOKIE_CONFIG } = require('../Utils/constant');
 
 class AuthController {
   /**
-   * Đăng ký tài khoản mới
+   * Register a new user account
+   * @param {Object} req - Express request object
+   * @param {Object} req.body - Request body containing user data
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   * @returns {Object} Response with success/error message
    */
-  async register(req, res, next) {
+  register = async (req, res, next) => {
     try {
       const userData = req.body;
-      const result = await authService.register(userData);
 
-      // Set tokens in cookies
-      res.cookie('accessToken', result.tokens.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: TOKEN_COOKIE_CONFIG.accessToken.maxAge,
-      });
+      await authService.register(userData);
 
-      res.cookie('refreshToken', result.tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: TOKEN_COOKIE_CONFIG.refreshToken.maxAge,
-      });
-
-      // Only return user information, not tokens
-      return res.status(201).json(response.success('User registered successfully', result.user));
+      return res.status(201).json(response.success('User registered successfully'));
     } catch (error) {
       next(error);
     }
-  }
+  };
 }
 
 module.exports = new AuthController();

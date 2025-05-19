@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./Utils/swagger');
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +32,9 @@ app.use(
   })
 );
 
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
 // Routes
 app.use('/auth-buyer', authBuyerRoutes);
 
@@ -41,6 +46,7 @@ mongoose
     // Start server
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
+      console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
     });
   })
   .catch(error => {

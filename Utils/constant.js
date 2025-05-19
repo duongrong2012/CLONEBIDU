@@ -81,6 +81,7 @@ const MESSAGES = {
     REQUIRED_FIRST_NAME: 'First name is required',
     REQUIRED_LAST_NAME: 'Last name is required',
     REQUIRED_GENDER: 'Gender is required',
+    INVALID_GENDER: 'Invalid gender value. Allowed values are: MALE, FEMALE, OTHER',
   },
 };
 
@@ -88,7 +89,7 @@ const REGEX_PATTERNS = {
   // Email must be a valid email address
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   // Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, and one number
-  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/,
+  PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
 };
 
 const DEFAULT_PAGINATION = {
@@ -104,7 +105,12 @@ const SELLER_REQUEST_STATUS = {
   REJECTED: 'REJECTED',
 };
 
+const ERROR_CODES = {
+  TOKEN_EXPIRED: 40101,
+};
+
 module.exports = {
+  ERROR_CODES,
   COOKIE_OPTIONS,
   TOKEN_COOKIE_CONFIG,
   JWT_CONFIG,

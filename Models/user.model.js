@@ -2,6 +2,31 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const { USER_ROLES, AUTH_PROVIDERS, GENDERS } = require('../Utils/constant');
 
+/**
+ * Shop information schema
+ * Contains all necessary fields for seller shop information
+ */
+const shopSchema = new mongoose.Schema({
+  birthday: String,
+  identityNumber: String,
+  bankName: String,
+  bankBranch: String,
+  taxCode: String,
+  national: String,
+  shop: String,
+  shopName: String,
+  isCompanyRegistered: Boolean,
+  address: String,
+  province: String,
+  district: String,
+  ward: String,
+  currentDigitalPlatforms: [String],
+});
+
+/**
+ * User schema
+ * Contains all user information and authentication details
+ */
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -65,25 +90,7 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     shop: {
-      type: new mongoose.Schema(
-        {
-          birthday: String,
-          identityNumber: String,
-          bankName: String,
-          bankBranch: String,
-          taxCode: String,
-          national: String,
-          shop: String,
-          shopName: String,
-          isCompanyRegistered: Boolean,
-          address: String,
-          province: String,
-          district: String,
-          ward: String,
-          currentDigitalPlatforms: [String],
-        },
-        { _id: false }
-      ),
+      type: shopSchema,
       default: undefined,
     },
   },
@@ -92,7 +99,10 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password before saving
+/**
+ * Pre-save middleware to hash password
+ * Only hashes the password if it has been modified
+ */
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
 
@@ -105,12 +115,20 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-// Method to check password
+/**
+ * Method to compare password with hashed password
+ * @param {string} candidatePassword - Password to compare
+ * @returns {Promise<boolean>} True if password matches
+ */
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to get public user information
+/**
+ * Method to get public user information
+ * Removes sensitive data like password and version
+ * @returns {Object} User object without sensitive data
+ */
 userSchema.methods.toPublicJSON = function () {
   const user = this.toObject();
   delete user.password;
