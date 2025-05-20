@@ -31,12 +31,24 @@ authFiles.forEach(file => {
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const spec = YAML.parse(fileContent);
 
-    // Hợp nhất components
+    // Merge sâu các schema trong components
     if (spec.components) {
-      mergedSpec.components = {
-        ...mergedSpec.components,
-        ...spec.components,
-      };
+      // Merge schemas
+      if (spec.components.schemas) {
+        mergedSpec.components.schemas = {
+          ...mergedSpec.components.schemas,
+          ...spec.components.schemas,
+        };
+      }
+      // Merge các thành phần khác nếu có (securitySchemes, parameters, ...)
+      Object.keys(spec.components).forEach(key => {
+        if (key !== 'schemas') {
+          mergedSpec.components[key] = {
+            ...mergedSpec.components[key],
+            ...spec.components[key],
+          };
+        }
+      });
     }
 
     // Hợp nhất paths

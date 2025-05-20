@@ -48,6 +48,7 @@ const AUTH_PROVIDERS = {
 const TOKEN_TYPES = {
   ACCESS: 'access',
   REFRESH: 'refresh',
+  BEARER: 'Bearer',
 };
 
 const MESSAGES = {

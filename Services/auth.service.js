@@ -1,6 +1,7 @@
 const { AppError } = require('../Utils/error.utils');
-const { MESSAGES } = require('../Utils/constant');
+const { MESSAGES, TOKEN_TYPES } = require('../Utils/constant');
 const User = require('../Models/user.model');
+const { generateToken } = require('../Utils/jwt.utils');
 class AuthService {
   /**
    * Register a new user
@@ -21,6 +22,40 @@ class AuthService {
 
     return {
       user: user.toPublicJSON(),
+    };
+  }
+
+  /**
+   * Login with email and password
+   */
+  async login(email, password) {
+    // Find user by email
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      throw new AppError(MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
+    }
+
+    // Check if account is active
+    if (!user.isActive) {
+      throw new AppError(MESSAGES.AUTH.ACCOUNT_INACTIVE, 403);
+    }
+
+    // Verify password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError(MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
+    }
+
+    // Generate tokens
+    const accessToken = generateToken(user, TOKEN_TYPES.ACCESS);
+    const refreshToken = generateToken(user, TOKEN_TYPES.REFRESH);
+
+    return {
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
     };
   }
 }
