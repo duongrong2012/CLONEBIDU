@@ -1,5 +1,9 @@
 const { AppError } = require('../Utils/error.utils');
 const { MESSAGES, REGEX_PATTERNS, GENDERS } = require('../Utils/constant');
+const { body, validationResult } = require('express-validator');
+const validationUtils = require('../Utils/validation.utils');
+const { HTTP_STATUS } = require('../Utils/constant');
+const response = require('../Utils/response.utils');
 
 /**
  * Middleware to validate user registration fields
@@ -46,6 +50,44 @@ const validateUserFields = (req, res, next) => {
   next();
 };
 
+/**
+ * Middleware to validate buyer login request
+ * Validates email format and required fields
+ */
+const validateBuyerLogin = [
+  // Validate email format
+  body('email')
+    .notEmpty()
+    .withMessage('Email is required')
+    .custom(value => {
+      try {
+        validationUtils.validateEmail(value);
+        return true;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    }),
+
+  // Validate password
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long'),
+
+  // Check for validation errors
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json(response.error('Validation failed', HTTP_STATUS.BAD_REQUEST, errors.array()));
+    }
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
+  validateBuyerLogin,
 };
