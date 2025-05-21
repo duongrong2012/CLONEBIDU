@@ -77,6 +77,29 @@ class AuthController {
       next(error);
     }
   };
+
+  /**
+   * Change user password
+   * @param {Object} req - Express request object
+   * @param {Object} req.user - User object from middleware
+   * @param {string} req.user._id - User ID
+   * @param {Object} req.body - Request body
+   * @param {string} req.body.oldPassword - Current password
+   * @param {string} req.body.newPassword - New password
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   * @returns {Object} Response with success message
+   */
+  changePassword = async (req, res, next) => {
+    try {
+      const { oldPassword, newPassword } = req.body;
+      const result = await authService.changePassword(req.user._id, oldPassword, newPassword);
+
+      return res.json(response.success(result.message));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new AuthController();

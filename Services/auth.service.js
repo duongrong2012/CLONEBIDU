@@ -1,7 +1,10 @@
+const bcrypt = require('bcrypt');
+
 const { AppError } = require('../Utils/error.utils');
 const { MESSAGES, TOKEN_TYPES } = require('../Utils/constant');
 const User = require('../Models/user.model');
 const { generateToken } = require('../Utils/jwt.utils');
+const validationUtils = require('../Utils/validation.utils');
 class AuthService {
   /**
    * Register a new user
@@ -69,6 +72,34 @@ class AuthService {
     return {
       accessToken: newAccessToken,
     };
+  }
+
+  /**
+   * Change password
+   */
+  async changePassword(userId, oldPassword, newPassword) {
+    // Validate new password
+    validationUtils.validatePassword(newPassword);
+
+    if (oldPassword === newPassword) {
+      throw new AppError(MESSAGES.AUTH.PASSWORD_DUPLICATE, 400);
+    }
+
+    const user = await User.findById(userId).select('+password');
+
+    if (!user) {
+      throw new AppError(MESSAGES.USER.NOT_FOUND, 404);
+    }
+
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      throw new AppError(MESSAGES.AUTH.INVALID_PASSWORD, 401);
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return { message: MESSAGES.AUTH.PASSWORD_CHANGED };
   }
 }
 
