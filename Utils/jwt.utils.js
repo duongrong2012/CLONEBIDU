@@ -15,6 +15,19 @@ class JWTUtils {
   }
 
   /**
+   * Extract token from Bearer Authentication header
+   * @param {string} authHeader - Authorization header value
+   * @returns {string} Extracted token
+   * @throws {AppError} If token is not provided or invalid format
+   */
+  extractTokenFromBearer(authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new AppError(MESSAGES.AUTH.TOKEN_REQUIRED, 401);
+    }
+    return authHeader.split(' ')[1];
+  }
+
+  /**
    * Generate JWT token
    * @param {Object} user - User information
    * @param {string} type - Token type (access or refresh)
@@ -34,6 +47,38 @@ class JWTUtils {
       return jwt.sign(payload, config.SECRET, { expiresIn: config.EXPIRES_IN });
     } catch {
       throw new AppError(MESSAGES.AUTH.INVALID_TOKEN, 500);
+    }
+  }
+
+  /**
+   * Verify and decode JWT token
+   * @param {string} token - JWT token to verify
+   * @param {string} type - Token type (access or refresh)
+   * @returns {Object} Decoded token payload
+   * @throws {AppError} If token is invalid or expired
+   */
+  verifyToken(token, type = TOKEN_TYPES.ACCESS) {
+    if (!token) {
+      throw new AppError(
+        type === TOKEN_TYPES.ACCESS
+          ? MESSAGES.AUTH.TOKEN_REQUIRED
+          : MESSAGES.AUTH.REFRESH_TOKEN_REQUIRED,
+        401
+      );
+    }
+
+    try {
+      const secret =
+        type === TOKEN_TYPES.ACCESS
+          ? JWT_CONFIG.ACCESS_TOKEN.SECRET
+          : JWT_CONFIG.REFRESH_TOKEN.SECRET;
+
+      return jwt.verify(token, secret);
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new AppError(MESSAGES.AUTH.TOKEN_EXPIRED, 401);
+      }
+      throw new AppError(MESSAGES.AUTH.INVALID_TOKEN, 401);
     }
   }
 }

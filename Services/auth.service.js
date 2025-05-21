@@ -58,6 +58,18 @@ class AuthService {
       },
     };
   }
+
+  /**
+   * Refresh access token
+   */
+  async refreshToken(user) {
+    // Generate new tokens
+    const newAccessToken = generateToken(user, TOKEN_TYPES.ACCESS);
+
+    return {
+      accessToken: newAccessToken,
+    };
+  }
 }
 
 module.exports = new AuthService();
