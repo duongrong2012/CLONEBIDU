@@ -50,6 +50,33 @@ class AuthController {
       next(error);
     }
   };
+
+  /**
+   * Refresh access token
+   * @param {Object} req - Express request object
+   * @param {Object} req.cookies - Cookies object
+   * @param {string} req.cookies.refreshToken - Refresh token
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   * @returns {Object} Response with success message
+   */
+  refreshToken = async (req, res, next) => {
+    try {
+      const user = req.user;
+
+      const result = await authService.refreshToken(user);
+
+      return res.json(
+        response.success('Token refreshed successfully', {
+          accessToken: result.accessToken,
+          tokenType: TOKEN_TYPES.BEARER,
+          expiresIn: JWT_CONFIG.ACCESS_TOKEN.EXPIRES_IN,
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new AuthController();
