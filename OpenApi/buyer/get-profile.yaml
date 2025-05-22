@@ -1,0 +1,137 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  schemas:
+    UserProfileResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: User profile retrieved successfully
+        data:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 60d21b4667d0d8992e610c85
+            email:
+              type: string
+              example: user@example.com
+            firstName:
+              type: string
+              example: John
+            lastName:
+              type: string
+              example: Doe
+            role:
+              type: string
+              example: buyer
+            isActive:
+              type: boolean
+              example: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 401
+        message:
+          type: string
+          example: Error message
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /buyer/profile:
+    get:
+      summary: Get user profile
+      tags:
+        - Buyer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: No token provided
+                invalidToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: Invalid token
+                tokenExpired:
+                  value:
+                    status: error
+                    code: 401
+                    message: Token has expired
+        '403':
+          description: Forbidden error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                accountInactive:
+                  value:
+                    status: error
+                    code: 403
+                    message: Your account has been deactivated
+                forbidden:
+                  value:
+                    status: error
+                    code: 403
+                    message: You do not have permission to perform this action
+        '404':
+          description: Not found error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                userNotFound:
+                  value:
+                    status: error
+                    code: 404
+                    message: User not found
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
