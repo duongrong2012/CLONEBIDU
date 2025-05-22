@@ -2,11 +2,11 @@ const YAML = require('yaml');
 const fs = require('fs');
 const path = require('path');
 
-// Đọc tất cả các file YAML trong thư mục auth
+// Read all YAML files in the auth directory
 const authDir = path.join(__dirname, 'auth');
 const authFiles = fs.readdirSync(authDir);
 
-// Hợp nhất tất cả các file YAML
+// Merge all YAML files
 const mergedSpec = {
   openapi: '3.0.0',
   info: {
@@ -24,14 +24,14 @@ const mergedSpec = {
   paths: {},
 };
 
-// Đọc và hợp nhất từng file
+// Read and merge each file
 authFiles.forEach(file => {
   if (file.endsWith('.yaml')) {
     const filePath = path.join(authDir, file);
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const spec = YAML.parse(fileContent);
 
-    // Merge sâu các schema trong components
+    // Deep merge schemas in components
     if (spec.components) {
       // Merge schemas
       if (spec.components.schemas) {
@@ -40,7 +40,7 @@ authFiles.forEach(file => {
           ...spec.components.schemas,
         };
       }
-      // Merge các thành phần khác nếu có (securitySchemes, parameters, ...)
+      // Merge other components if any (securitySchemes, parameters, ...)
       Object.keys(spec.components).forEach(key => {
         if (key !== 'schemas') {
           mergedSpec.components[key] = {
@@ -51,7 +51,7 @@ authFiles.forEach(file => {
       });
     }
 
-    // Hợp nhất paths
+    // Merge paths
     if (spec.paths) {
       mergedSpec.paths = {
         ...mergedSpec.paths,

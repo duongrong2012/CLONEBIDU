@@ -3,7 +3,7 @@ const { AppError } = require('./error.utils');
 const { TOKEN_TYPES, MESSAGES, JWT_CONFIG } = require('./constant');
 
 /**
- * Utility class để xử lý JSON Web Tokens (JWT)
+ * Utility class for handling JSON Web Tokens (JWT)
  * @class JWTUtils
  */
 class JWTUtils {

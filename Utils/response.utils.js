@@ -42,16 +42,16 @@ class ResponseUtils {
   }
 
   /**
-   * Tạo response với phân trang
-   * @param {string} message - Thông báo
-   * @param {Array} data - Dữ liệu trả về
-   * @param {Object} pagination - Thông tin phân trang
-   * @param {number} pagination.page - Trang hiện tại
-   * @param {number} pagination.limit - Số lượng item mỗi trang
-   * @param {number} pagination.total - Tổng số item
-   * @param {number} pagination.totalPages - Tổng số trang
+   * Create paginated response
+   * @param {string} message - Response message
+   * @param {Array} data - Response data
+   * @param {Object} pagination - Pagination information
+   * @param {number} pagination.page - Current page
+   * @param {number} pagination.limit - Items per page
+   * @param {number} pagination.total - Total items
+   * @param {number} pagination.totalPages - Total pages
    * @param {number} [statusCode=200] - HTTP status code
-   * @returns {Object} Response object với thông tin phân trang
+   * @returns {Object} Response object with pagination information
    * @example
    * // returns {
    * //   status: 'success',

@@ -1,62 +1,57 @@
-# Express Authentication API
+# Authentication API
 
-API xác thực người dùng sử dụng Express.js và MongoDB.
+User authentication API using Express.js and MongoDB.
 
-## Cài đặt
+## Installation
 
-1. Clone repository:
+1. Clone the repository:
 
 ```bash
 git clone <repository-url>
 cd <repository-name>
 ```
 
-2. Cài đặt các phụ thuộc:
+2. Install dependencies:
 
 ```bash
 npm install
 ```
 
-3. Tạo tệp .env và cấu hình các biến môi trường:
+3. Create .env file and configure environment variables:
 
-```
+```env
 PORT=3000
-MONGO_URI=mongodb://localhost:27017/auth-demo
-JWT_SECRET=your_jwt_secret_key
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_key
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
+MONGO_URI=mongodb://localhost:27017/your-database
+JWT_SECRET=your-jwt-secret
+JWT_REFRESH_SECRET=your-jwt-refresh-secret
 ```
 
-4. Khởi động máy chủ:
+4. Start the server:
 
 ```bash
-npm run watch:dev
+npm run dev
 ```
 
 ## API Endpoints
 
-### Xác thực
+### Authentication
 
-#### Đăng ký
+#### Register
 
-- **URL**: `/api/auth/sign-up`
-- **Method**: `POST`
-- **Body**:
+- **POST** `/auth-buyer/register`
+- Request body:
   ```json
   {
     "email": "user@example.com",
     "password": "password123",
-    "firstName": "John",
-    "lastName": "Doe"
+    "fullName": "John Doe"
   }
   ```
 
-#### Đăng nhập
+#### Login
 
-- **URL**: `/api/auth/sign-in`
-- **Method**: `POST`
-- **Body**:
+- **POST** `/auth-buyer/login`
+- Request body:
   ```json
   {
     "email": "user@example.com",
@@ -64,50 +59,50 @@ npm run watch:dev
   }
   ```
 
-#### Đăng xuất
+#### Logout
 
-- **URL**: `/api/auth/sign-out`
-- **Method**: `POST`
-- **Headers**: `Authorization: Bearer <access_token>`
+- **POST** `/auth-buyer/logout`
+- Requires authentication token
 
-#### Làm mới token
+#### Refresh Token
 
-- **URL**: `/api/auth/refresh-token`
-- **Method**: `POST`
-- **Cookies**: `refreshToken`
-
-### Người dùng
-
-#### Lấy thông tin người dùng hiện tại
-
-- **URL**: `/api/users/me`
-- **Method**: `GET`
-- **Headers**: `Authorization: Bearer <access_token>`
-
-#### Cập nhật thông tin người dùng
-
-- **URL**: `/api/users/update-me`
-- **Method**: `PATCH`
-- **Headers**: `Authorization: Bearer <access_token>`
-- **Body**:
+- **POST** `/auth-buyer/refresh-token`
+- Request body:
   ```json
   {
-    "firstName": "Updated First Name",
-    "lastName": "Updated Last Name",
-    "email": "updated@example.com"
+    "refreshToken": "your-refresh-token"
   }
   ```
 
-#### Xóa tài khoản người dùng
+### User
 
-- **URL**: `/api/users/delete-me`
-- **Method**: `DELETE`
-- **Headers**: `Authorization: Bearer <access_token>`
+#### Get Current User
 
-## Bảo mật
+- **GET** `/auth-buyer/me`
+- Requires authentication token
 
-- Mật khẩu được mã hóa trước khi lưu vào cơ sở dữ liệu
-- Sử dụng JWT để xác thực
-- Access token hết hạn sau 15 phút
-- Refresh token hết hạn sau 7 ngày
-- Cookies được đặt với cờ httpOnly và secure (trong môi trường production)
+#### Update User
+
+- **PUT** `/auth-buyer/me`
+- Requires authentication token
+- Request body:
+  ```json
+  {
+    "fullName": "New Name",
+    "email": "newemail@example.com"
+  }
+  ```
+
+#### Delete User
+
+- **DELETE** `/auth-buyer/me`
+- Requires authentication token
+
+## Security
+
+- Passwords are encrypted before storing in the database
+- JWT tokens are used for authentication
+- Refresh tokens are used for token rotation
+- CORS is enabled for specified origins
+- Input validation is implemented
+- Error handling middleware is in place
