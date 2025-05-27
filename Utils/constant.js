@@ -110,6 +110,39 @@ const ERROR_CODES = {
   TOKEN_EXPIRED: 40101,
 };
 
+/**
+ * Enum for image owner types
+ */
+const IMAGE_OWNER_TYPE = {
+  USER: 'USER',
+  PRODUCT: 'PRODUCT',
+  CATEGORY: 'CATEGORY',
+  // Add more types as needed
+};
+
+/**
+ * Enum for media types
+ */
+const MEDIA_TYPE = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  // Add more types as needed
+};
+
+/**
+ * Enum for supported file types
+ */
+const SUPPORTED_FILE_TYPES = {
+  IMAGE: {
+    MIME_TYPES: ['image/jpeg', 'image/png', 'image/webp'],
+    EXTENSIONS: ['.jpg', '.jpeg', '.png', '.webp'],
+  },
+  VIDEO: {
+    MIME_TYPES: ['video/mp4', 'video/quicktime', 'video/webm'],
+    EXTENSIONS: ['.mp4', '.mov', '.webm'],
+  },
+};
+
 module.exports = {
   ERROR_CODES,
   COOKIE_OPTIONS,
@@ -123,4 +156,7 @@ module.exports = {
   REGEX_PATTERNS,
   DEFAULT_PAGINATION,
   SELLER_REQUEST_STATUS,
+  IMAGE_OWNER_TYPE,
+  MEDIA_TYPE,
+  SUPPORTED_FILE_TYPES,
 };
