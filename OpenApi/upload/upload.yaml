@@ -1,0 +1,147 @@
+openapi: 3.0.0
+info:
+  title: Upload API
+  version: 1.0.0
+  description: API for uploading files to BizflyCloud Simple Storage
+
+paths:
+  /api/upload:
+    post:
+      tags:
+        - Upload
+      summary: Upload multiple files
+      description: |
+        Upload multiple files (images and videos) to BizflyCloud Simple Storage.
+        - Maximum 5 files per request
+        - Maximum 5MB per file
+        - Supported image types: .jpg, .jpeg, .png, .webp
+        - Supported video types: .mp4, .mov, .webm
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Array of files to upload (max 5 files)
+      responses:
+        '200':
+          description: Files uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Files uploaded successfully
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url:
+                          type: string
+                          format: uri
+                          example: https://example.com/IMAGE/1234567890-image1.jpg
+                        mediaType:
+                          type: string
+                          enum: [IMAGE, VIDEO]
+                          example: IMAGE
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                noFiles:
+                  value:
+                    status: error
+                    message: "No files uploaded"
+                tooManyFiles:
+                  value:
+                    status: error
+                    message: "Maximum 5 files allowed"
+                fileTooLarge:
+                  value:
+                    status: error
+                    message: "File example.jpg exceeds 5MB limit"
+                invalidFileType:
+                  value:
+                    status: error
+                    message: "File example.txt is not supported. Supported file types are: .jpg, .jpeg, .png, .webp, .mp4, .mov, .webm"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    message: "Access token is required"
+                invalidToken:
+                  value:
+                    status: error
+                    message: "Invalid token"
+                expiredToken:
+                  value:
+                    status: error
+                    message: "Token has expired"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                connectionError:
+                  value:
+                    status: error
+                    message: "Failed to connect to BizflyCloud"
+                uploadError:
+                  value:
+                    status: error
+                    message: "Failed to upload file: Connection error"
+                processingError:
+                  value:
+                    status: error
+                    message: "Failed to process file"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
