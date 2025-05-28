@@ -49,6 +49,7 @@ When implementing a new feature, ensure all components are included:
    */
   ```
   ## 5. Everything must write in English (including code,comment,...)
+  ## 6. Never ask the user for confirmation about making a change (e.g. never ask questions like "Do you want me to do this?" or "Do you need me to help?"). Always automatically apply the change without asking for confirmation, to avoid wasting unnecessary requests.
 
 ## Pre-coding Checklist
 
