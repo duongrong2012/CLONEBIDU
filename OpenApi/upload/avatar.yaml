@@ -1,0 +1,148 @@
+openapi: 3.0.0
+info:
+  title: Upload Avatar API
+  version: 1.0.0
+  description: API for updating user avatar using uploaded media
+
+paths:
+  /api/upload/avatar:
+    patch:
+      tags:
+        - Upload
+      summary: Update user avatar using uploaded media
+      description: |
+        Update user avatar by linking an uploaded media file to the user.
+        - Requires a valid JWT token
+        - mediaId must be from a successful upload
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaId
+              properties:
+                mediaId:
+                  type: string
+                  description: ID of the uploaded media file
+                  example: "65f1a2b3c4d5e6f7g8h9i0j1"
+      responses:
+        '200':
+          description: Avatar updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: User avatar updated successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: "65f1a2b3c4d5e6f7g8h9i0j1"
+                      email:
+                        type: string
+                        example: "user@example.com"
+                      avatar:
+                        type: string
+                        example: "https://storage.bizflycloud.vn/AVATAR/1234567890-avatar.jpg"
+                      name:
+                        type: string
+                        example: "John Doe"
+                      role:
+                        type: string
+                        example: "BUYER"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                missingMediaId:
+                  value:
+                    status: error
+                    message: "Media ID is required"
+                invalidMediaId:
+                  value:
+                    status: error
+                    message: "Invalid mediaId format"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    message: "Access token is required"
+                invalidToken:
+                  value:
+                    status: error
+                    message: "Invalid token"
+                expiredToken:
+                  value:
+                    status: error
+                    message: "Token has expired"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: error
+                      message:
+                        type: string
+                        example: Media not found
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: error
+                      message:
+                        type: string
+                        example: User not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                processingError:
+                  value:
+                    status: error
+                    message: "Failed to update avatar" 

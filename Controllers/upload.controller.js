@@ -1,5 +1,6 @@
 const uploadService = require('../Services/upload.service');
 const { catchAsync } = require('../Utils/error.utils');
+const { AppError } = require('../Utils/error.utils');
 
 /**
  * Controller for handling file uploads
@@ -25,6 +26,29 @@ class UploadController {
       message: 'Upload completed',
       data: success,
       failed: failed.length ? failed : undefined,
+    });
+  });
+
+  /**
+   * Update user avatar using uploaded media
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} _next - Express next function
+   */
+  updateUserAvatar = catchAsync(async (req, res, _next) => {
+    const { mediaId } = req.body;
+    const userId = req.user._id;
+
+    if (!mediaId) {
+      throw new AppError('Media ID is required', 400);
+    }
+
+    const result = await uploadService.updateUserAvatar(mediaId, userId);
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'User avatar updated successfully',
+      data: result,
     });
   });
 }

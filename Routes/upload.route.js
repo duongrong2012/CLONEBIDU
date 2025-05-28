@@ -20,4 +20,11 @@ router.post(
   uploadController.uploadFile
 );
 
+/**
+ * @route PATCH /api/upload/avatar
+ * @desc Update user avatar using uploaded media
+ * @access Private
+ */
+router.patch('/avatar', verifyToken(), uploadController.updateUserAvatar);
+
 module.exports = router;

@@ -1,10 +1,14 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { AppError } = require('../Utils/error.utils');
-const { MEDIA_TYPE, SUPPORTED_FILE_TYPES } = require('../Utils/constant');
+const { MEDIA_TYPE, SUPPORTED_FILE_TYPES, IMAGE_OWNER_TYPE } = require('../Utils/constant');
 const Media = require('../Models/media.model');
+const User = require('../Models/user.model');
+const BaseService = require('./base.service');
+const mongoose = require('mongoose');
 
-class UploadService {
+class UploadService extends BaseService {
   constructor() {
+    super(Media);
     this.s3 = new S3Client({
       region: process.env.BIZFLY_REGION,
       endpoint: process.env.BIZFLY_ENDPOINT,
@@ -70,6 +74,38 @@ class UploadService {
       }
       throw new AppError(`Failed to upload file: ${error.message}`, 400);
     }
+  }
+
+  /**
+   * Update user avatar using uploaded media
+   * @param {string} mediaId - ID of the uploaded media
+   * @param {string} userId - ID of the user
+   * @returns {Promise<Object>} Updated user object
+   */
+  async updateUserAvatar(mediaId, userId) {
+    if (!mongoose.Types.ObjectId.isValid(mediaId)) {
+      throw new AppError('Invalid mediaId format', 400);
+    }
+    // Find media by ID
+    const media = await this.getById(mediaId);
+    if (!media) {
+      throw new AppError('Media not found', 404);
+    }
+
+    // Update media with owner info
+    await this.update(mediaId, {
+      ownerType: IMAGE_OWNER_TYPE.USER,
+      ownerId: userId,
+    });
+
+    // Update user avatar
+    const updatedUser = await User.findByIdAndUpdate(userId, { avatar: media.url }, { new: true });
+
+    if (!updatedUser) {
+      throw new AppError('User not found', 404);
+    }
+
+    return updatedUser.toPublicJSON();
   }
 }
 
