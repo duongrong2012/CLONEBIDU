@@ -55,12 +55,14 @@ function mergeYamlFilesFromDir(dirPath, fileList) {
         });
       }
 
-      // Merge paths
+      // Merge paths (deep merge by method)
       if (spec.paths) {
-        mergedSpec.paths = {
-          ...mergedSpec.paths,
-          ...spec.paths,
-        };
+        Object.entries(spec.paths).forEach(([path, methods]) => {
+          if (!mergedSpec.paths[path]) {
+            mergedSpec.paths[path] = {};
+          }
+          Object.assign(mergedSpec.paths[path], methods);
+        });
       }
     }
   });

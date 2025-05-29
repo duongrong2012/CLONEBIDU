@@ -83,6 +83,14 @@ const MESSAGES = {
     REQUIRED_LAST_NAME: 'Last name is required',
     REQUIRED_GENDER: 'Gender is required',
     INVALID_GENDER: 'Invalid gender value. Allowed values are: MALE, FEMALE, OTHER',
+    FIRST_NAME_LENGTH: 'First name must be between 2 and 50 characters',
+    LAST_NAME_LENGTH: 'Last name must be between 2 and 50 characters',
+    FIRST_NAME_PATTERN: 'First name can only contain letters and spaces',
+    LAST_NAME_PATTERN: 'Last name can only contain letters and spaces',
+    INVALID_BIRTHDAY_FORMAT: 'Birthday must be a valid date in ISO format (YYYY-MM-DD)',
+    BIRTHDAY_FUTURE: 'Birthday cannot be in the future',
+    BIRTHDAY_AGE: 'User must be at least 13 years old',
+    NO_FIELDS_TO_UPDATE: 'No fields provided for update',
   },
 };
 
@@ -91,6 +99,8 @@ const REGEX_PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   // Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, and one number
   PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
+  // Name can only contain letters and spaces
+  NAME: /^[a-zA-Z\s]*$/,
 };
 
 const DEFAULT_PAGINATION = {

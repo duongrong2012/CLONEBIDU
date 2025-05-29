@@ -68,6 +68,26 @@ class ValidationUtils {
         : DEFAULT_PAGINATION.SORT_ORDER,
     };
   }
+
+  /**
+   * Validates birthday format and age requirements
+   * @param {string} birthday - Birthday in ISO format (YYYY-MM-DD)
+   * @throws {Error} If birthday is invalid
+   */
+  validateBirthday(birthday) {
+    const date = new Date(birthday);
+    const now = new Date();
+
+    if (date > now) {
+      throw new Error(MESSAGES.VALIDATION.BIRTHDAY_FUTURE);
+    }
+
+    // Check if age is at least 13 years
+    const age = now.getFullYear() - date.getFullYear();
+    if (age < 13) {
+      throw new Error(MESSAGES.VALIDATION.BIRTHDAY_AGE);
+    }
+  }
 }
 
 module.exports = new ValidationUtils();
