@@ -1,0 +1,217 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UpdateProfileRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-Z\s]*$'
+          description: First name of the user (2-50 characters, letters and spaces only)
+          example: John
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-zA-Z\s]*$'
+          description: Last name of the user (2-50 characters, letters and spaces only)
+          example: Doe
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+          description: Gender of the user (MALE, FEMALE, or OTHER)
+          example: MALE
+        birthday:
+          type: string
+          format: date
+          description: Birthday in ISO format (YYYY-MM-DD), must be at least 13 years old
+          example: 1990-01-01
+    UserProfileResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: Profile updated successfully
+        data:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 60d21b4667d0d8992e610c85
+            email:
+              type: string
+              example: user@example.com
+            firstName:
+              type: string
+              example: John
+            lastName:
+              type: string
+              example: Doe
+            gender:
+              type: string
+              enum: [MALE, FEMALE, OTHER]
+              example: MALE
+            birthday:
+              type: string
+              format: date
+              example: 1990-01-01
+            role:
+              type: string
+              example: buyer
+            isActive:
+              type: boolean
+              example: true
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message
+
+paths:
+  /buyer/profile:
+    patch:
+      summary: Update user profile
+      description: |
+        Update the current user's profile information.
+        
+        Validation Rules:
+        - firstName: 2-50 characters, letters and spaces only
+        - lastName: 2-50 characters, letters and spaces only
+        - gender: must be one of [MALE, FEMALE, OTHER]
+        - birthday: valid date in ISO format, must be at least 13 years old
+        - At least one field must be provided for update
+      tags:
+        - Buyer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noFields:
+                  value:
+                    status: error
+                    code: 400
+                    message: "No fields to update"
+                invalidFirstName:
+                  value:
+                    status: error
+                    code: 400
+                    message: "First name must be between 2 and 50 characters, First name can only contain letters and spaces"
+                invalidLastName:
+                  value:
+                    status: error
+                    code: 400
+                    message: "Last name must be between 2 and 50 characters, Last name can only contain letters and spaces"
+                invalidGender:
+                  value:
+                    status: error
+                    code: 400
+                    message: "Invalid gender value. Allowed values are: MALE, FEMALE, OTHER"
+                invalidBirthday:
+                  value:
+                    status: error
+                    code: 400
+                    message: "Birthday must be a valid date in ISO format (YYYY-MM-DD), Birthday cannot be in the future, User must be at least 13 years old"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: "No token provided"
+                invalidToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: "Invalid token"
+                tokenExpired:
+                  value:
+                    status: error
+                    code: 401
+                    message: "Token has expired"
+        '403':
+          description: Forbidden error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                accountInactive:
+                  value:
+                    status: error
+                    code: 403
+                    message: "Your account has been deactivated"
+                forbidden:
+                  value:
+                    status: error
+                    code: 403
+                    message: "You do not have permission to perform this action"
+        '404':
+          description: Not found error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                userNotFound:
+                  value:
+                    status: error
+                    code: 404
+                    message: "User not found"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse' 

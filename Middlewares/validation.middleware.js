@@ -87,7 +87,64 @@ const validateBuyerLogin = [
   },
 ];
 
+/**
+ * Middleware to validate user profile update request
+ * Validates:
+ * - firstName: 2-50 characters, letters and spaces only
+ * - lastName: 2-50 characters, letters and spaces only
+ * - gender: must be one of [MALE, FEMALE, OTHER]
+ * - birthday: valid date in ISO format, must be at least 13 years old
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const validateUpdateProfile = [
+  body('firstName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage(MESSAGES.VALIDATION.FIRST_NAME_LENGTH)
+    .matches(REGEX_PATTERNS.NAME)
+    .withMessage(MESSAGES.VALIDATION.FIRST_NAME_PATTERN),
+
+  body('lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage(MESSAGES.VALIDATION.LAST_NAME_LENGTH)
+    .matches(REGEX_PATTERNS.NAME)
+    .withMessage(MESSAGES.VALIDATION.LAST_NAME_PATTERN),
+
+  body('gender')
+    .optional()
+    .isIn(Object.values(GENDERS))
+    .withMessage(MESSAGES.VALIDATION.INVALID_GENDER),
+
+  body('birthday')
+    .optional()
+    .isISO8601()
+    .withMessage(MESSAGES.VALIDATION.INVALID_BIRTHDAY_FORMAT)
+    .custom(value => {
+      try {
+        validationUtils.validateBirthday(value);
+        return true;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    }),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg);
+      throw new AppError(errorMessages.join(', '), 400);
+    }
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
+  validateUpdateProfile,
 };
