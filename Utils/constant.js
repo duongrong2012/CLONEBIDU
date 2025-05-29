@@ -92,6 +92,13 @@ const MESSAGES = {
     BIRTHDAY_AGE: 'User must be at least 13 years old',
     NO_FIELDS_TO_UPDATE: 'No fields provided for update',
   },
+  SEEDER: {
+    SUPER_ADMIN_EXISTS: 'Super admin already exists',
+    SUPER_ADMIN_CREATED: 'Super admin created successfully',
+    DB_CONNECTED: 'Connected to MongoDB',
+    DB_CONNECTION_ERROR: 'Error connecting to MongoDB',
+    SUPER_ADMIN_CREATION_ERROR: 'Error creating super admin',
+  },
 };
 
 const REGEX_PATTERNS = {

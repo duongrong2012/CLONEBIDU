@@ -10,7 +10,7 @@ const swaggerSpecs = require('./Utils/swagger');
 dotenv.config();
 
 // Import routes
-const { authBuyerRoutes, buyerRoutes } = require('./Routes');
+const { authBuyerRoutes, buyerRoutes, authAdminRoutes } = require('./Routes');
 const uploadRoute = require('./Routes/upload.route');
 
 // Import middlewares
@@ -39,6 +39,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 // Routes
 app.use('/auth-buyer', authBuyerRoutes);
 app.use('/buyer', buyerRoutes);
+app.use('/auth-admin', authAdminRoutes);
 app.use('/api/upload', uploadRoute);
 // Connect to MongoDB
 mongoose

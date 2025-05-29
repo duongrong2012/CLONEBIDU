@@ -1,0 +1,196 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterAdminRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - gender
+      properties:
+        email:
+          type: string
+          format: email
+          description: Admin email address
+          example: admin@bidu.com
+        password:
+          type: string
+          format: password
+          minLength: 6
+          description: Admin password (minimum 6 characters, must contain at least one uppercase letter, one lowercase letter, and one number)
+          example: Admin123!
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: ^[a-zA-Z\s]*$
+          description: Admin first name (2-50 characters, letters and spaces only)
+          example: Admin
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: ^[a-zA-Z\s]*$
+          description: Admin last name (2-50 characters, letters and spaces only)
+          example: User
+        gender:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+          description: Admin gender
+          example: MALE
+
+    RegisterAdminResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        code:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: User registered successfully
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: 60d21b4667d0d8992e610c85
+                email:
+                  type: string
+                  example: admin@bidu.com
+                firstName:
+                  type: string
+                  example: Admin
+                lastName:
+                  type: string
+                  example: User
+                gender:
+                  type: string
+                  example: MALE
+                role:
+                  type: string
+                  example: ADMIN
+                isActive:
+                  type: boolean
+                  example: true
+                isEmailVerified:
+                  type: boolean
+                  example: true
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Validation error
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: email
+              message:
+                type: string
+                example: Invalid email format
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message
+
+paths:
+  /auth-admin/register:
+    post:
+      summary: Register a new admin account
+      description: >-
+        Register a new admin account. Only super admin can perform this action.
+        Validation Rules:
+        - email: Must be a valid email format
+        - password: Must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, and one number
+        - firstName: 2-50 characters, letters and spaces only
+        - lastName: 2-50 characters, letters and spaces only
+        - gender: Must be one of [MALE, FEMALE, OTHER]
+      tags:
+        - Admin Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAdminRequest'
+      responses:
+        '201':
+          description: Admin registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterAdminResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse' 
