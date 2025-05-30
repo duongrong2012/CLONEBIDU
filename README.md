@@ -32,6 +32,18 @@ JWT_REFRESH_SECRET=your-jwt-refresh-secret
 npm run dev
 ```
 
+## Running the Seeder Script to Create a Super Admin Account
+
+To create a super admin account, follow these steps:
+1. Run the following command in your terminal:
+
+   ```bash
+   npm run seed:super-admin
+   ```
+
+   This command executes the seeder script located at `seeders/create-super-admin.js`, which creates a super admin account in your database.
+
+
 ## API Endpoints
 
 ### Authentication

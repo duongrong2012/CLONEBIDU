@@ -19,7 +19,6 @@ class AuthAdminService {
       ...userData,
       role: USER_ROLES.ADMIN,
       isActive: true,
-      isEmailVerified: true,
     });
 
     return {
