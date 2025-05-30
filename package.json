@@ -6,6 +6,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "seed:super-admin": "node seeders/create-super-admin.js",
     "prepare": "husky install"
   },
   "dependencies": {

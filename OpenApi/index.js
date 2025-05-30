@@ -2,9 +2,11 @@ const YAML = require('yaml');
 const fs = require('fs');
 const path = require('path');
 
-// Read all YAML files in the auth, buyer and upload directories
+// Read all YAML files in the auth, auth-admin, buyer and upload directories
 const authDir = path.join(__dirname, 'auth');
 const authFiles = fs.readdirSync(authDir);
+const authAdminDir = path.join(__dirname, 'auth-admin');
+const authAdminFiles = fs.readdirSync(authAdminDir);
 const buyerDir = path.join(__dirname, 'buyer');
 const buyerFiles = fs.readdirSync(buyerDir);
 const uploadDir = path.join(__dirname, 'upload');
@@ -68,8 +70,9 @@ function mergeYamlFilesFromDir(dirPath, fileList) {
   });
 }
 
-// Merge YAML files from auth, buyer and upload directories
+// Merge YAML files from auth, auth-admin, buyer and upload directories
 mergeYamlFilesFromDir(authDir, authFiles);
+mergeYamlFilesFromDir(authAdminDir, authAdminFiles);
 mergeYamlFilesFromDir(buyerDir, buyerFiles);
 mergeYamlFilesFromDir(uploadDir, uploadFiles);
 
