@@ -6,6 +6,6 @@ const { validateUpdateProfile } = require('../Middlewares/validation.middleware'
 
 // Protected routes
 router.get('/profile', verifyToken(), buyerController.getProfile);
-router.patch('/profile', validateUpdateProfile, buyerController.updateProfile);
+router.patch('/profile', verifyToken(), validateUpdateProfile, buyerController.updateProfile);
 
 module.exports = router;
