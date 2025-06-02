@@ -1,0 +1,329 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SubmitSellerRequest:
+      type: object
+      required:
+        - birthday
+        - identityNumber
+        - bankName
+        - bankBranch
+        - national
+        - shop
+        - shopName
+        - address
+        - province
+        - district
+        - ward
+      properties:
+        birthday:
+          type: string
+          format: date
+          description: Birthday in ISO format (YYYY-MM-DD), must be at least 13 years old
+          example: 1990-01-01
+        identityNumber:
+          type: string
+          description: Identity number of the seller
+          example: "123456789"
+        bankName:
+          type: string
+          description: Name of the bank
+          example: "Vietcombank"
+        bankBranch:
+          type: string
+          description: Bank branch
+          example: "Hanoi"
+        taxCode:
+          type: string
+          description: Tax code (optional)
+          example: "1234567890"
+        national:
+          type: string
+          description: Nationality
+          example: "Vietnam"
+        shop:
+          type: string
+          description: Shop code
+          example: "shop123"
+        shopName:
+          type: string
+          description: Shop name
+          example: "John's Shop"
+        isCompanyRegistered:
+          type: boolean
+          description: Is company registered (optional)
+          example: false
+        address:
+          type: string
+          description: Address
+          example: "123 Main St"
+        province:
+          type: string
+          description: Province
+          example: "Hanoi"
+        district:
+          type: string
+          description: District
+          example: "Ba Dinh"
+        ward:
+          type: string
+          description: Ward
+          example: "Phuc Xa"
+        currentDigitalPlatforms:
+          type: array
+          description: List of current digital platforms (optional)
+          items:
+            type: string
+          example: ["Shopee", "Lazada"]
+    SellerResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: Seller request submitted successfully
+        data:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 60d21b4667d0d8992e610c85
+            email:
+              type: string
+              example: seller@example.com
+            firstName:
+              type: string
+              example: John
+            lastName:
+              type: string
+              example: Doe
+            gender:
+              type: string
+              enum: [MALE, FEMALE, OTHER]
+              example: MALE
+            birthday:
+              type: string
+              format: date
+              example: 1990-01-01
+            role:
+              type: string
+              example: seller
+            isActive:
+              type: boolean
+              example: true
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message
+
+paths:
+  /seller/requests:
+    post:
+      summary: Submit a seller request
+      description: |
+        Submit a request to become a seller in the system.
+        
+        Validation Rules:
+        - birthday: Required, valid date in ISO format, must be at least 13 years old.
+        - identityNumber: Required, non-empty string.
+        - bankName: Required, non-empty string.
+        - bankBranch: Required, non-empty string.
+        - taxCode: Optional, string.
+        - national: Required, non-empty string.
+        - shop: Required, non-empty string.
+        - shopName: Required, non-empty string.
+        - isCompanyRegistered: Optional, boolean.
+        - address: Required, non-empty string.
+        - province: Required, non-empty string.
+        - district: Required, non-empty string.
+        - ward: Required, non-empty string.
+        - currentDigitalPlatforms: Optional, array of string.
+      tags:
+        - Seller
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitSellerRequest'
+            example:
+              birthday: "1990-01-01"
+              identityNumber: "123456789"
+              bankName: "Vietcombank"
+              bankBranch: "Hanoi"
+              taxCode: "1234567890"
+              national: "Vietnam"
+              shop: "shop123"
+              shopName: "John's Shop"
+              isCompanyRegistered: false
+              address: "123 Main St"
+              province: "Hanoi"
+              district: "Ba Dinh"
+              ward: "Phuc Xa"
+              currentDigitalPlatforms: ["Shopee", "Lazada"]
+      responses:
+        '200':
+          description: Seller request submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SellerResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                AlreadySeller:
+                  summary: User is already a seller
+                  value:
+                    status: error
+                    code: 400
+                    message: User is already a seller
+                PendingRequest:
+                  summary: User already has a pending request
+                  value:
+                    status: error
+                    code: 400
+                    message: User already has a pending request
+                FieldNotAllowed:
+                  summary: Field not allowed
+                  value:
+                    status: error
+                    code: 400
+                    message: Field 'xxx' is not allowed.
+                FieldRequired:
+                  summary: Field required
+                  value:
+                    status: error
+                    code: 400
+                    message: Field 'xxx' is required.
+                InvalidBirthday:
+                  summary: Invalid birthday
+                  value:
+                    status: error
+                    code: 400
+                    message: Field birthday must be a valid date.
+                Under13:
+                  summary: User under 13 years old
+                  value:
+                    status: error
+                    code: 400
+                    message: User must be at least 13 years old.
+                InvalidString:
+                  summary: Field must be a non-empty string
+                  value:
+                    status: error
+                    code: 400
+                    message: Field 'xxx' must be a non-empty string.
+                InvalidTaxCode:
+                  summary: Tax code must be a string
+                  value:
+                    status: error
+                    code: 400
+                    message: Field 'taxCode' must be a string.
+                InvalidIsCompanyRegistered:
+                  summary: isCompanyRegistered must be boolean
+                  value:
+                    status: error
+                    code: 400
+                    message: Field 'isCompanyRegistered' must be a boolean.
+                InvalidCurrentDigitalPlatforms:
+                  summary: currentDigitalPlatforms must be array of string
+                  value:
+                    status: error
+                    code: 400
+                    message: Field 'currentDigitalPlatforms' must be an array of string.
+                InvalidCurrentDigitalPlatformsItem:
+                  summary: currentDigitalPlatforms item must be string
+                  value:
+                    status: error
+                    code: 400
+                    message: All items in 'currentDigitalPlatforms' must be string.
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: "No token provided"
+                invalidToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: "Invalid token"
+                tokenExpired:
+                  value:
+                    status: error
+                    code: 401
+                    message: "Token has expired"
+        '403':
+          description: Forbidden error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                accountInactive:
+                  value:
+                    status: error
+                    code: 403
+                    message: "Your account has been deactivated"
+                forbidden:
+                  value:
+                    status: error
+                    code: 403
+                    message: "You do not have permission to perform this action"
+        '404':
+          description: Not found error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                userNotFound:
+                  value:
+                    status: error
+                    code: 404
+                    message: "User not found"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

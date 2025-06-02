@@ -4,6 +4,9 @@ const { body, validationResult } = require('express-validator');
 const validationUtils = require('../Utils/validation.utils');
 const { HTTP_STATUS } = require('../Utils/constant');
 const response = require('../Utils/response.utils');
+const User = require('../Models/user.model');
+const BecomeSellerRequest = require('../Models/becomeSellerRequest.model');
+const { SELLER_REQUEST_STATUS, USER_ROLES } = require('../Utils/constant');
 
 /**
  * Middleware to validate user registration fields
@@ -143,8 +146,154 @@ const validateUpdateProfile = [
   },
 ];
 
+/**
+ * Validate seller request:
+ * - Check if user is already a seller or has a pending request
+ * - Validate all fields sent from client according to BecomeSellerRequest.model.js
+ * - Only accept valid fields, check required, type, pattern, enum, etc.
+ * - If valid, assign to req.validatedSellerRequest for controller usage
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+async function validateSellerRequest(req, res, next) {
+  try {
+    const user = await User.findById(req.user._id);
+    if (user.role === USER_ROLES.SELLER) {
+      throw new AppError('User is already a seller', 400);
+    }
+    const pendingRequest = await BecomeSellerRequest.findOne({
+      user: req.user._id,
+      status: SELLER_REQUEST_STATUS.PENDING,
+    });
+    if (pendingRequest) {
+      throw new AppError('User already has a pending request', 400);
+    }
+
+    // Validate fields
+    const allowedFields = [
+      'birthday',
+      'identityNumber',
+      'bankName',
+      'bankBranch',
+      'taxCode',
+      'national',
+      'shop',
+      'shopName',
+      'isCompanyRegistered',
+      'address',
+      'province',
+      'district',
+      'ward',
+      'currentDigitalPlatforms',
+    ];
+    const requiredFields = [
+      'birthday',
+      'identityNumber',
+      'bankName',
+      'bankBranch',
+      'national',
+      'shop',
+      'shopName',
+      'address',
+      'province',
+      'district',
+      'ward',
+    ];
+    const stringFields = [
+      'identityNumber',
+      'bankName',
+      'bankBranch',
+      'national',
+      'shop',
+      'shopName',
+      'address',
+      'province',
+      'district',
+      'ward',
+    ];
+    const errors = [];
+    const data = {};
+    // Only accept allowed fields
+    for (const key of Object.keys(req.body)) {
+      if (!allowedFields.includes(key)) {
+        errors.push(`Field '${key}' is not allowed.`);
+      }
+    }
+    // Check required fields
+    for (const key of requiredFields) {
+      if (req.body[key] === undefined || req.body[key] === null || req.body[key] === '') {
+        errors.push(`Field '${key}' is required.`);
+      }
+    }
+    // birthday: must be valid date, at least 13 years old
+    if (req.body.birthday) {
+      const birthday = new Date(req.body.birthday);
+      if (isNaN(birthday.getTime())) {
+        errors.push('Field birthday must be a valid date.');
+      } else {
+        const now = new Date();
+        const age = now.getFullYear() - birthday.getFullYear();
+        if (
+          age < 13 ||
+          (age === 13 &&
+            now < new Date(birthday.getFullYear() + 13, birthday.getMonth(), birthday.getDate()))
+        ) {
+          errors.push('User must be at least 13 years old.');
+        } else {
+          data.birthday = birthday;
+        }
+      }
+    }
+    // Validate string fields
+    stringFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        if (typeof req.body[field] !== 'string' || req.body[field].trim() === '') {
+          errors.push(`Field '${field}' must be a non-empty string.`);
+        } else {
+          data[field] = req.body[field].trim();
+        }
+      }
+    });
+    // taxCode: optional string
+    if (req.body.taxCode !== undefined) {
+      if (typeof req.body.taxCode !== 'string') {
+        errors.push(`Field 'taxCode' must be a string.`);
+      } else {
+        data.taxCode = req.body.taxCode.trim();
+      }
+    }
+    // isCompanyRegistered: optional boolean
+    if (req.body.isCompanyRegistered !== undefined) {
+      if (typeof req.body.isCompanyRegistered !== 'boolean') {
+        errors.push(`Field 'isCompanyRegistered' must be a boolean.`);
+      } else {
+        data.isCompanyRegistered = req.body.isCompanyRegistered;
+      }
+    }
+    // currentDigitalPlatforms: optional array of string
+    if (req.body.currentDigitalPlatforms !== undefined) {
+      if (!Array.isArray(req.body.currentDigitalPlatforms)) {
+        errors.push(`Field 'currentDigitalPlatforms' must be an array of string.`);
+      } else if (!req.body.currentDigitalPlatforms.every(i => typeof i === 'string')) {
+        errors.push(`All items in 'currentDigitalPlatforms' must be string.`);
+      } else {
+        data.currentDigitalPlatforms = req.body.currentDigitalPlatforms;
+      }
+    }
+    if (errors.length > 0) {
+      return next(new AppError(errors.join(' '), 400));
+    }
+    req.validatedSellerRequest = data;
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
   validateUpdateProfile,
+  validateSellerRequest,
 };
