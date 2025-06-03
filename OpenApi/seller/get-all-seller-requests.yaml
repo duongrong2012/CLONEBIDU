@@ -1,0 +1,188 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SellerRequest:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 60d21b4667d0d8992e610c85
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 60d21b4667d0d8992e610c86
+            username:
+              type: string
+              example: johndoe
+            email:
+              type: string
+              example: john@example.com
+            firstName:
+              type: string
+              example: John
+            lastName:
+              type: string
+              example: Doe
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          example: PENDING
+        rejectReason:
+          type: string
+          nullable: true
+          example: null
+        birthday:
+          type: string
+          format: date
+          example: 1990-01-01
+        identityNumber:
+          type: string
+          example: 123456789
+        bankName:
+          type: string
+          example: Vietcombank
+        bankBranch:
+          type: string
+          example: Hanoi
+        taxCode:
+          type: string
+          nullable: true
+          example: 1234567890
+        national:
+          type: string
+          example: Vietnam
+        shop:
+          type: string
+          example: shop123
+        shopName:
+          type: string
+          example: John's Shop
+        isCompanyRegistered:
+          type: boolean
+          example: false
+        address:
+          type: string
+          example: 123 Main St
+        province:
+          type: string
+          example: Hanoi
+        district:
+          type: string
+          example: Ba Dinh
+        ward:
+          type: string
+          example: Phuc Xa
+        currentDigitalPlatforms:
+          type: array
+          items:
+            type: string
+          example: ["Shopee", "Lazada"]
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T00:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T00:00:00Z
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message
+
+paths:
+  /seller/all-requests:
+    get:
+      summary: Get all seller requests
+      description: |
+        Retrieve all seller registration requests. This endpoint is only accessible by admin users.
+        Returns a list of all seller requests with their associated user information.
+      tags:
+        - Seller
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved all seller requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Requests retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SellerRequest'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: No token provided
+                invalidToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: Invalid token
+                tokenExpired:
+                  value:
+                    status: error
+                    code: 401
+                    message: Token has expired
+        '403':
+          description: Forbidden error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                forbidden:
+                  value:
+                    status: error
+                    code: 403
+                    message: You do not have permission to perform this action
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse' 

@@ -20,6 +20,14 @@ class SellerService extends BaseService {
     await sellerRequest.save();
     return sellerRequest;
   }
+
+  /**
+   * Get all seller requests with user information
+   * @returns {Promise<Array>} Array of requests with user info
+   */
+  async getAllRequests() {
+    return this.model.find().populate('user', 'username email firstName lastName');
+  }
 }
 
 module.exports = new SellerService();

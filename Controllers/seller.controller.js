@@ -8,6 +8,21 @@ class SellerController extends BaseController {
   }
 
   /**
+   * Get all seller requests (admin only)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  getSellerRequests = async (req, res, next) => {
+    try {
+      const requests = await this.service.getAllRequests();
+      res.json(response.success('Requests retrieved successfully', requests));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
    * Submit a request to become a seller
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object

@@ -6,6 +6,12 @@ const { validateSellerRequest } = require('../Middlewares/validation.middleware'
 const router = express.Router();
 
 // Routes for buyers
+router.get(
+  '/all-requests',
+  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
+  sellerController.getSellerRequests
+);
+
 router.post(
   '/requests',
   verifyToken([USER_ROLES.BUYER]),
