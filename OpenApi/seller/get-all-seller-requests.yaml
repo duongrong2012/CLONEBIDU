@@ -1,0 +1,262 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SellerRequest:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 60d21b4667d0d8992e610c85
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 60d21b4667d0d8992e610c86
+            username:
+              type: string
+              example: johndoe
+            email:
+              type: string
+              example: john@example.com
+            firstName:
+              type: string
+              example: John
+            lastName:
+              type: string
+              example: Doe
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          example: PENDING
+        rejectReason:
+          type: string
+          nullable: true
+          example: null
+        birthday:
+          type: string
+          format: date
+          example: 1990-01-01
+        identityNumber:
+          type: string
+          example: 123456789
+        bankName:
+          type: string
+          example: Vietcombank
+        bankBranch:
+          type: string
+          example: Hanoi
+        taxCode:
+          type: string
+          nullable: true
+          example: 1234567890
+        national:
+          type: string
+          example: Vietnam
+        shop:
+          type: string
+          example: shop123
+        shopName:
+          type: string
+          example: John's Shop
+        isCompanyRegistered:
+          type: boolean
+          example: false
+        address:
+          type: string
+          example: 123 Main St
+        province:
+          type: string
+          example: Hanoi
+        district:
+          type: string
+          example: Ba Dinh
+        ward:
+          type: string
+          example: Phuc Xa
+        currentDigitalPlatforms:
+          type: array
+          items:
+            type: string
+          example: ["Shopee", "Lazada"]
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T00:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T00:00:00Z
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          description: Number of items per page
+          example: 10
+        total:
+          type: integer
+          description: Total number of items
+          example: 100
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 10
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message
+
+paths:
+  /seller/all-requests:
+    get:
+      summary: Get all seller requests
+      description: |
+        Retrieve all seller registration requests. This endpoint is only accessible by admin users.
+        Returns a list of all seller requests with their associated user information.
+        
+        Supports pagination and filtering with the following query parameters:
+        - page: Page number (default: 1)
+        - limit: Items per page (default: 10, max: 100)
+        - sortBy: Field to sort by (default: createdAt)
+        - sortOrder: Sort order, either 'asc' or 'desc' (default: desc)
+        - status: Filter by request status (PENDING/APPROVED/REJECTED)
+        - userId: Filter by user ID
+      tags:
+        - Seller
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            default: createdAt
+        - name: sortOrder
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: status
+          in: query
+          description: Filter by request status
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved all seller requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Requests retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SellerRequest'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationInfo'
+        '400':
+          description: Bad Request - Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPage:
+                  value: { status: error, code: 400, message: Page must be a positive integer }
+                invalidLimit:
+                  value: { status: error, code: 400, message: Limit must be between 1 and 100 }
+                invalidSortOrder:
+                  value: { status: error, code: 400, message: SortOrder must be either asc or desc }
+                invalidStatus:
+                  value: { status: error, code: 400, message: "Status must be one of: PENDING, APPROVED, REJECTED" }
+                invalidUserId:
+                  value: { status: error, code: 400, message: Invalid user ID format }
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noToken:
+                  value: { status: error, code: 401, message: No token provided }
+                invalidToken:
+                  value: { status: error, code: 401, message: Invalid token }
+                tokenExpired:
+                  value: { status: error, code: 401, message: Token has expired }
+        '403':
+          description: Forbidden error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                forbidden:
+                  value: { status: error, code: 403, message: You do not have permission to perform this action }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse' 
