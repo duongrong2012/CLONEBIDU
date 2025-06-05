@@ -1,0 +1,242 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+servers:
+  - url: http://localhost:3000
+    description: Development server
+paths:
+  /seller/requests/{requestId}:
+    patch:
+      summary: Process a seller request
+      description: Admin approves or rejects a seller request
+      tags:
+        - Seller
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the seller request to process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [APPROVED, REJECTED]
+                  description: New status of the request
+                rejectReason:
+                  type: string
+                  description: Reason for rejection (required if status is REJECTED)
+      responses:
+        '200':
+          description: Request processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Request approved successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: 60d21b4667d0d8992e610c85
+                      user:
+                        type: string
+                        example: 60d21b4667d0d8992e610c86
+                      status:
+                        type: string
+                        enum: [APPROVED, REJECTED]
+                        example: APPROVED
+                      rejectReason:
+                        type: string
+                        nullable: true
+                        example: null
+                      birthday:
+                        type: string
+                        format: date
+                        example: 1990-01-01
+                      identityNumber:
+                        type: string
+                        example: 123456789
+                      bankName:
+                        type: string
+                        example: Vietcombank
+                      bankBranch:
+                        type: string
+                        example: Hanoi
+                      taxCode:
+                        type: string
+                        nullable: true
+                        example: 1234567890
+                      national:
+                        type: string
+                        example: Vietnam
+                      shop:
+                        type: string
+                        example: shop123
+                      shopName:
+                        type: string
+                        example: John's Shop
+                      isCompanyRegistered:
+                        type: boolean
+                        example: false
+                      address:
+                        type: string
+                        example: 123 Main St
+                      province:
+                        type: string
+                        example: Hanoi
+                      district:
+                        type: string
+                        example: Ba Dinh
+                      ward:
+                        type: string
+                        example: Phuc Xa
+                      currentDigitalPlatforms:
+                        type: array
+                        items:
+                          type: string
+                        example: ["Shopee", "Lazada"]
+                      createdAt:
+                        type: string
+                        format: date-time
+                        example: 2023-01-01T00:00:00Z
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        example: 2023-01-01T00:00:00Z
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  code:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: Request has already been processed
+              examples:
+                alreadyProcessed:
+                  value:
+                    status: error
+                    code: 400
+                    message: Request has already been processed
+                rejectReasonRequired:
+                  value:
+                    status: error
+                    code: 400
+                    message: Rejection reason is required
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  code:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: No token provided
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: No token provided
+                invalidToken:
+                  value:
+                    status: error
+                    code: 401
+                    message: Invalid token
+                tokenExpired:
+                  value:
+                    status: error
+                    code: 401
+                    message: Token has expired
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  code:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: You do not have permission to perform this action
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  code:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: Request not found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  code:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: Internal server error
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 

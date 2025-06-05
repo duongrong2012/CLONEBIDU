@@ -291,9 +291,60 @@ async function validateSellerRequest(req, res, next) {
   }
 }
 
+/**
+ * Validate process seller request body
+ * @returns {Array} Express validator middleware chain
+ */
+const validateProcessSellerRequest = () => {
+  return [
+    body('status')
+      .isIn([SELLER_REQUEST_STATUS.APPROVED, SELLER_REQUEST_STATUS.REJECTED])
+      .withMessage('Status must be either APPROVED or REJECTED'),
+    body('rejectReason')
+      .if(body('status').equals(SELLER_REQUEST_STATUS.REJECTED))
+      .notEmpty()
+      .withMessage('Rejection reason is required when status is REJECTED'),
+    async (req, res, next) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          const errorMessages = errors.array().map(err => err.msg);
+          throw new AppError(errorMessages.join(', '), 400);
+        }
+
+        // Check if request exists and is pending
+        const request = await BecomeSellerRequest.findById(req.params.requestId);
+        if (!request) {
+          throw new AppError('Seller request not found', 404);
+        }
+        if (request.status !== SELLER_REQUEST_STATUS.PENDING) {
+          throw new AppError('Request has already been processed', 400);
+        }
+
+        // Validate status and rejectReason
+        if (req.body.status === SELLER_REQUEST_STATUS.REJECTED && !req.body.rejectReason) {
+          throw new AppError('Rejection reason is required when status is REJECTED', 400);
+        }
+
+        // Store validated request and data for controller usage
+        req.validatedSellerRequest = request;
+        req.validatedProcessData = {
+          status: req.body.status,
+          rejectReason: req.body.rejectReason,
+          shouldUpdateUser: req.body.status === SELLER_REQUEST_STATUS.APPROVED,
+        };
+        next();
+      } catch (error) {
+        next(error);
+      }
+    },
+  ];
+};
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
   validateUpdateProfile,
   validateSellerRequest,
+  validateProcessSellerRequest,
 };

@@ -23,6 +23,17 @@ class BaseService {
   }
 
   /**
+   * Get request by ID
+   * @param {string} requestId - Request ID
+   * @returns {Promise<Object>} Found request
+   * @throws {AppError} If request not found
+   */
+  async getRequestById(requestId) {
+    const request = await this.getById(requestId);
+    return request;
+  }
+
+  /**
    * Get all records with optional filtering
    * @param {Object} query - Query parameters for filtering
    * @returns {Promise<Array>} Array of records
