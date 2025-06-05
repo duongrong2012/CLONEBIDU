@@ -39,6 +39,25 @@ class SellerController extends BaseController {
       next(error);
     }
   };
+
+  /**
+   * Process a seller request (approve/reject)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  processSellerRequest = async (req, res, next) => {
+    try {
+      const { validatedSellerRequest, validatedProcessData } = req;
+      const updatedRequest = await this.service.processRequest(
+        validatedSellerRequest,
+        validatedProcessData
+      );
+      res.status(200).json(response.success('Request processed successfully', updatedRequest));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new SellerController();
