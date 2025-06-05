@@ -15,9 +15,17 @@ class SellerController extends BaseController {
    */
   getSellerRequests = async (req, res, next) => {
     try {
-      const { data, pagination } = await this.service.getAllRequests(req.query);
+      const result = await this.service.getAllRequests(req.query);
+      const { data, page, limit, total, totalPages } = result;
 
-      res.json(response.paginate('Requests retrieved successfully', data, pagination));
+      res.json(
+        response.paginate('Requests retrieved successfully', data, {
+          page,
+          limit,
+          total,
+          totalPages,
+        })
+      );
     } catch (error) {
       next(error);
     }
@@ -36,6 +44,25 @@ class SellerController extends BaseController {
         req.validatedSellerRequest
       );
       res.status(201).json(response.success('Request submitted successfully', sellerRequest));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Process a seller request (approve/reject)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  processSellerRequest = async (req, res, next) => {
+    try {
+      const { validatedSellerRequest, validatedProcessData } = req;
+      const updatedRequest = await this.service.processRequest(
+        validatedSellerRequest,
+        validatedProcessData
+      );
+      res.status(200).json(response.success('Request processed successfully', updatedRequest));
     } catch (error) {
       next(error);
     }

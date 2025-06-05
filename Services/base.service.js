@@ -24,6 +24,17 @@ class BaseService {
   }
 
   /**
+   * Get request by ID
+   * @param {string} requestId - Request ID
+   * @returns {Promise<Object>} Found request
+   * @throws {AppError} If request not found
+   */
+  async getRequestById(requestId) {
+    const request = await this.getById(requestId);
+    return request;
+  }
+
+  /**
    * Get all records with optional filtering
    * @param {Object} query - Query parameters for filtering
    * @returns {Promise<Array>} Array of records
@@ -90,28 +101,23 @@ class BaseService {
    */
   async paginate(query = {}, filter = {}) {
     const { page, limit, sortBy, sortOrder } = validationUtils.validatePagination(query);
-    const skip = (page - 1) * limit;
 
-    const [records, total] = await Promise.all([
-      this.model
-        .find(filter)
-        .sort({ [sortBy]: sortOrder })
-        .skip(skip)
-        .limit(limit),
-      this.model.countDocuments(filter),
-    ]);
-
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      data: records,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
+    const options = {
+      page,
+      limit,
+      sort: { [sortBy]: sortOrder },
+      lean: true,
+      customLabels: {
+        docs: 'data',
+        totalDocs: 'total',
+        totalPages: 'totalPages',
+        page: 'page',
+        limit: 'limit',
       },
     };
+
+    const result = await this.model.paginate(filter, options);
+    return result;
   }
 }
 
