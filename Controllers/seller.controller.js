@@ -15,8 +15,17 @@ class SellerController extends BaseController {
    */
   getSellerRequests = async (req, res, next) => {
     try {
-      const requests = await this.service.getAllRequests();
-      res.json(response.success('Requests retrieved successfully', requests));
+      const result = await this.service.getAllRequests(req.query);
+      const { data, page, limit, total, totalPages } = result;
+
+      res.json(
+        response.paginate('Requests retrieved successfully', data, {
+          page,
+          limit,
+          total,
+          totalPages,
+        })
+      );
     } catch (error) {
       next(error);
     }

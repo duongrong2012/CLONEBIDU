@@ -101,6 +101,25 @@ components:
           type: string
           format: date-time
           example: 2023-01-01T00:00:00Z
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          description: Number of items per page
+          example: 10
+        total:
+          type: integer
+          description: Total number of items
+          example: 100
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 10
     ErrorResponse:
       type: object
       properties:
@@ -121,10 +140,58 @@ paths:
       description: |
         Retrieve all seller registration requests. This endpoint is only accessible by admin users.
         Returns a list of all seller requests with their associated user information.
+        
+        Supports pagination and filtering with the following query parameters:
+        - page: Page number (default: 1)
+        - limit: Items per page (default: 10, max: 100)
+        - sortBy: Field to sort by (default: createdAt)
+        - sortOrder: Sort order, either 'asc' or 'desc' (default: desc)
+        - status: Filter by request status (PENDING/APPROVED/REJECTED)
+        - userId: Filter by user ID
       tags:
         - Seller
       security:
         - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            default: createdAt
+        - name: sortOrder
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: status
+          in: query
+          description: Filter by request status
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
       responses:
         '200':
           description: Successfully retrieved all seller requests
@@ -146,6 +213,25 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/SellerRequest'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationInfo'
+        '400':
+          description: Bad Request - Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPage:
+                  value: { status: error, code: 400, message: Page must be a positive integer }
+                invalidLimit:
+                  value: { status: error, code: 400, message: Limit must be between 1 and 100 }
+                invalidSortOrder:
+                  value: { status: error, code: 400, message: SortOrder must be either asc or desc }
+                invalidStatus:
+                  value: { status: error, code: 400, message: "Status must be one of: PENDING, APPROVED, REJECTED" }
+                invalidUserId:
+                  value: { status: error, code: 400, message: Invalid user ID format }
         '401':
           description: Authentication error
           content:
@@ -154,20 +240,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
                 noToken:
-                  value:
-                    status: error
-                    code: 401
-                    message: No token provided
+                  value: { status: error, code: 401, message: No token provided }
                 invalidToken:
-                  value:
-                    status: error
-                    code: 401
-                    message: Invalid token
+                  value: { status: error, code: 401, message: Invalid token }
                 tokenExpired:
-                  value:
-                    status: error
-                    code: 401
-                    message: Token has expired
+                  value: { status: error, code: 401, message: Token has expired }
         '403':
           description: Forbidden error
           content:
@@ -176,10 +253,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
                 forbidden:
-                  value:
-                    status: error
-                    code: 403
-                    message: You do not have permission to perform this action
+                  value: { status: error, code: 403, message: You do not have permission to perform this action }
         '500':
           description: Server error
           content:

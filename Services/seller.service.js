@@ -24,6 +24,36 @@ class SellerService extends BaseService {
   }
 
   /**
+   * Get all seller requests with user information
+   * @param {Object} query - Query parameters for pagination and filtering
+   * @param {string} [query.status] - Filter by status (PENDING/APPROVED/REJECTED)
+   * @param {string} [query.userId] - Filter by user ID
+   * @returns {Promise<Object>} Paginated requests with user info
+   */
+  async getAllRequests(query = {}) {
+    const { status, userId, ...paginationQuery } = query;
+    const filter = {};
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (userId) {
+      filter.user = userId;
+    }
+
+    const options = {
+      ...paginationQuery,
+      populate: {
+        path: 'user',
+        select: 'username email firstName lastName',
+      },
+    };
+
+    return this.paginate(options, filter);
+  }
+
+  /**
    * Process a seller request
    * @param {Object} request - Seller request document
    * @param {Object} processData - Process data

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 /**
  * Schema for seller registration requests
@@ -81,5 +82,8 @@ const becomeSellerRequestSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Add pagination plugin
+becomeSellerRequestSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('BecomeSellerRequest', becomeSellerRequestSchema);

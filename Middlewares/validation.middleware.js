@@ -1,6 +1,6 @@
 const { AppError } = require('../Utils/error.utils');
 const { MESSAGES, REGEX_PATTERNS, GENDERS } = require('../Utils/constant');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, query } = require('express-validator');
 const validationUtils = require('../Utils/validation.utils');
 const { HTTP_STATUS } = require('../Utils/constant');
 const response = require('../Utils/response.utils');
@@ -341,10 +341,62 @@ const validateProcessSellerRequest = () => {
   ];
 };
 
+/**
+ * Validate pagination query parameters
+ * @returns {Array} Express validator middleware chain
+ */
+const validatePaginationQuery = () => {
+  return [
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('sortBy').optional().isString().withMessage('SortBy must be a string'),
+    query('sortOrder')
+      .optional()
+      .isIn(['asc', 'desc'])
+      .withMessage('SortOrder must be either asc or desc'),
+    (req, res, next) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(err => err.msg);
+        throw new AppError(errorMessages.join(', '), 400);
+      }
+      next();
+    },
+  ];
+};
+
+/**
+ * Validate seller request filters:
+ * - status: Optional, must be one of PENDING, APPROVED, REJECTED
+ * - userId: Optional, must be valid MongoDB ObjectId
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const validateSellerRequestFilters = [
+  query('status')
+    .optional()
+    .isIn(Object.values(SELLER_REQUEST_STATUS))
+    .withMessage('Status must be one of: PENDING, APPROVED, REJECTED'),
+  query('userId').optional().isMongoId().withMessage('Invalid user ID format'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new AppError(errors.array()[0].msg, 400));
+    }
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
   validateUpdateProfile,
   validateSellerRequest,
+  validatePaginationQuery,
+  validateSellerRequestFilters,
   validateProcessSellerRequest,
 };

@@ -4,17 +4,13 @@ const { USER_ROLES } = require('../Utils/constant');
 const sellerController = require('../Controllers/seller.controller');
 const {
   validateSellerRequest,
+  validatePaginationQuery,
+  validateSellerRequestFilters,
   validateProcessSellerRequest,
 } = require('../Middlewares/validation.middleware');
 const router = express.Router();
 
 // Routes for buyers
-router.get(
-  '/all-requests',
-  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
-  sellerController.getSellerRequests
-);
-
 router.post(
   '/requests',
   verifyToken([USER_ROLES.BUYER]),
@@ -23,6 +19,14 @@ router.post(
 );
 
 // Routes for admins
+router.get(
+  '/all-requests',
+  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
+  validatePaginationQuery(),
+  validateSellerRequestFilters,
+  sellerController.getSellerRequests
+);
+
 router.patch(
   '/requests/:requestId',
   verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
