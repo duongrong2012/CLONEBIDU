@@ -7,6 +7,7 @@ const {
   validatePaginationQuery,
   validateSellerRequestFilters,
   validateProcessSellerRequest,
+  validateCancelSellerRequest,
 } = require('../Middlewares/validation.middleware');
 const router = express.Router();
 
@@ -16,6 +17,22 @@ router.post(
   verifyToken([USER_ROLES.BUYER]),
   validateSellerRequest,
   sellerController.submitSellerRequest
+);
+
+router.patch(
+  '/requests/:requestId/cancel',
+  verifyToken([USER_ROLES.BUYER]),
+  validateCancelSellerRequest,
+  sellerController.cancelSellerRequest
+);
+
+// Route for buyers/sellers to view their own requests
+router.get(
+  '/my-requests',
+  verifyToken([USER_ROLES.BUYER, USER_ROLES.SELLER]),
+  validatePaginationQuery(),
+  validateSellerRequestFilters,
+  sellerController.getMyRequests
 );
 
 // Routes for admins
