@@ -13,6 +13,8 @@ const uploadDir = path.join(__dirname, 'upload');
 const uploadFiles = fs.readdirSync(uploadDir);
 const sellerDir = path.join(__dirname, 'seller');
 const sellerFiles = fs.readdirSync(sellerDir);
+const userDir = path.join(__dirname, 'user');
+const userFiles = fs.readdirSync(userDir);
 
 // Merge all YAML files
 const mergedSpec = {
@@ -78,5 +80,6 @@ mergeYamlFilesFromDir(authAdminDir, authAdminFiles);
 mergeYamlFilesFromDir(buyerDir, buyerFiles);
 mergeYamlFilesFromDir(uploadDir, uploadFiles);
 mergeYamlFilesFromDir(sellerDir, sellerFiles);
+mergeYamlFilesFromDir(userDir, userFiles);
 
 module.exports = mergedSpec;

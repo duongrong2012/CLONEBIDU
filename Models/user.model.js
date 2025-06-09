@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const { USER_ROLES, AUTH_PROVIDERS, GENDERS } = require('../Utils/constant');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 /**
  * Shop information schema
@@ -98,6 +99,8 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+userSchema.plugin(mongoosePaginate);
 
 /**
  * Pre-save middleware to hash password

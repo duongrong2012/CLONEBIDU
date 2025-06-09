@@ -71,6 +71,19 @@ class ResponseUtils {
       pagination,
     };
   }
+
+  /**
+   * Group data and pagination info into a single object
+   * @param {Object} result - Result object from service (data, page, limit, total, totalPages)
+   * @returns {Object} { data, pagination }
+   */
+  groupPagination(result) {
+    const { data, page, limit, total, totalPages } = result;
+    return {
+      data,
+      pagination: { page, limit, total, totalPages },
+    };
+  }
 }
 
 module.exports = new ResponseUtils();
