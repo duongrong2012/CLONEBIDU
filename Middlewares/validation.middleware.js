@@ -7,6 +7,7 @@ const response = require('../Utils/response.utils');
 const User = require('../Models/user.model');
 const BecomeSellerRequest = require('../Models/becomeSellerRequest.model');
 const { SELLER_REQUEST_STATUS, USER_ROLES } = require('../Utils/constant');
+const mongoose = require('mongoose');
 
 /**
  * Middleware to validate user registration fields
@@ -426,6 +427,39 @@ const validateGetUsers = () => {
   ];
 };
 
+/**
+ * Middleware to validate cancel seller request (buyer only)
+ * - Check if requestId is valid
+ * - Check if request exists
+ * - Check if user is the owner
+ * - Check if status is PENDING
+ * If valid, assign request to req.validatedSellerRequest
+ * If invalid, return error immediately
+ */
+const validateCancelSellerRequest = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const userId = req.user._id;
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+      return next(new AppError('Invalid request ID', 400));
+    }
+    const request = await BecomeSellerRequest.findById(requestId);
+    if (!request) {
+      return next(new AppError('Request not found', 404));
+    }
+    if (request.user.toString() !== userId.toString()) {
+      return next(new AppError('Forbidden', 403));
+    }
+    if (request.status !== SELLER_REQUEST_STATUS.PENDING) {
+      return next(new AppError('Only pending requests can be cancelled', 400));
+    }
+    req.validatedSellerRequest = request;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -435,4 +469,5 @@ module.exports = {
   validateSellerRequestFilters,
   validateProcessSellerRequest,
   validateGetUsers,
+  validateCancelSellerRequest,
 };

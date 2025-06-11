@@ -1,0 +1,196 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    BecomeSellerRequest:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 60d21b4667d0d8992e610c85
+        user:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 60d21b4667d0d8992e610c86
+            username:
+              type: string
+              example: johndoe
+            email:
+              type: string
+              example: john@example.com
+            firstName:
+              type: string
+              example: John
+            lastName:
+              type: string
+              example: Doe
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+          example: CANCELLED
+        rejectReason:
+          type: string
+          nullable: true
+          example: null
+        birthday:
+          type: string
+          format: date
+          example: 1990-01-01
+        identityNumber:
+          type: string
+          example: 123456789
+        bankName:
+          type: string
+          example: Vietcombank
+        bankBranch:
+          type: string
+          example: Hanoi
+        taxCode:
+          type: string
+          nullable: true
+          example: 1234567890
+        national:
+          type: string
+          example: Vietnam
+        shop:
+          type: string
+          example: shop123
+        shopName:
+          type: string
+          example: John's Shop
+        isCompanyRegistered:
+          type: boolean
+          example: false
+        address:
+          type: string
+          example: 123 Main St
+        province:
+          type: string
+          example: Hanoi
+        district:
+          type: string
+          example: Ba Dinh
+        ward:
+          type: string
+          example: Phuc Xa
+        currentDigitalPlatforms:
+          type: array
+          items:
+            type: string
+          example: ["Shopee", "Lazada"]
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T00:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2023-01-01T00:00:00Z
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message
+
+paths:
+  /seller/requests/{requestId}/cancel:
+    patch:
+      tags:
+        - Seller
+      summary: Cancel a pending seller request (buyer only)
+      description: |
+        Cancel a pending seller request. Only the owner (buyer) of the request can cancel it, and only if the request is in PENDING status.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          description: The ID of the seller request to cancel
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Request cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Request cancelled successfully
+                  data:
+                    $ref: '#/components/schemas/BecomeSellerRequest'
+        '400':
+          description: Bad Request - Invalid requestId or request is not pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidId:
+                  value: { status: error, code: 400, message: Invalid request ID }
+                notPending:
+                  value: { status: error, code: 400, message: Only pending requests can be cancelled }
+        '403':
+          description: Forbidden - Not the owner of the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                forbidden:
+                  value: { status: error, code: 403, message: Forbidden }
+        '404':
+          description: Not Found - Request does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  value: { status: error, code: 404, message: Request not found }
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  value: { status: error, code: 401, message: Unauthorized access }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse' 
