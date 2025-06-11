@@ -393,6 +393,41 @@ const validateSellerRequestFilters = [
 ];
 
 /**
+ * Validate get users query parameters:
+ * - name: Optional, string for searching by name
+ * - role: Optional, must be one of [BUYER, SELLER, ADMIN]
+ * - isActive: Optional, boolean for searching by active status
+ * - sortBy: Optional, must be one of [createdAt, updatedAt, firstName, lastName, email]
+ * - sortOrder: Optional, must be one of [asc, desc]
+ * @returns {Array} Express validator middleware chain
+ */
+const validateGetUsers = () => {
+  return [
+    ...validatePaginationQuery(),
+    query('name')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Name must be between 1 and 100 characters'),
+    query('role').optional().isIn(Object.values(USER_ROLES)).withMessage('Invalid role value'),
+    query('isActive').optional().isBoolean().withMessage('isActive must be true or false'),
+    query('sortBy')
+      .optional()
+      .isIn(['createdAt', 'updatedAt', 'firstName', 'lastName', 'email'])
+      .withMessage('Invalid sort field'),
+    (req, res, next) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(err => err.msg);
+        throw new AppError(errorMessages.join(', '), 400);
+      }
+      next();
+    },
+  ];
+};
+
+/**
  * Middleware to validate cancel seller request (buyer only)
  * - Check if requestId is valid
  * - Check if request exists
@@ -433,5 +468,6 @@ module.exports = {
   validatePaginationQuery,
   validateSellerRequestFilters,
   validateProcessSellerRequest,
+  validateGetUsers,
   validateCancelSellerRequest,
 };
