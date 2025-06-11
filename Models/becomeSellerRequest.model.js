@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
-
+const { SELLER_REQUEST_STATUS } = require('../Utils/constant');
 /**
  * Schema for seller registration requests
  * Contains all necessary information for becoming a seller
@@ -14,8 +14,8 @@ const becomeSellerRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['PENDING', 'APPROVED', 'REJECTED'],
-      default: 'PENDING',
+      enum: Object.values(SELLER_REQUEST_STATUS),
+      default: SELLER_REQUEST_STATUS.PENDING,
     },
     rejectReason: {
       type: String,

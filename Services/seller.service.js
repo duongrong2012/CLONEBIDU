@@ -24,7 +24,7 @@ class SellerService extends BaseService {
   }
 
   /**
-   * Get all seller requests with user information
+   * Get all seller requests with user information (admin only)
    * @param {Object} query - Query parameters for pagination and filtering
    * @param {string} [query.status] - Filter by status (PENDING/APPROVED/REJECTED)
    * @param {string} [query.userId] - Filter by user ID
@@ -40,6 +40,32 @@ class SellerService extends BaseService {
 
     if (userId) {
       filter.user = userId;
+    }
+
+    const options = {
+      ...paginationQuery,
+      populate: {
+        path: 'user',
+        select: 'username email firstName lastName',
+      },
+    };
+
+    return this.paginate(options, filter);
+  }
+
+  /**
+   * Get seller requests for a specific user (buyer/seller only)
+   * @param {string} userId - User ID
+   * @param {Object} query - Query parameters for pagination and filtering
+   * @param {string} [query.status] - Filter by status (PENDING/APPROVED/REJECTED)
+   * @returns {Promise<Object>} Paginated requests
+   */
+  async getMyRequests(userId, query = {}) {
+    const { status, ...paginationQuery } = query;
+    const filter = { user: userId };
+
+    if (status) {
+      filter.status = status;
     }
 
     const options = {
@@ -98,6 +124,17 @@ class SellerService extends BaseService {
       currentDigitalPlatforms: request.currentDigitalPlatforms,
     };
     await user.save();
+  }
+
+  /**
+   * Cancel a pending seller request (buyer only)
+   * @param {Object} request - Seller request document đã validate
+   * @returns {Promise<Object>} Cancelled request
+   */
+  async cancelSellerRequest(request) {
+    request.status = 'CANCELLED';
+    await request.save();
+    return request;
   }
 }
 
