@@ -1,0 +1,211 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: new.email@example.com
+          description: New email address
+        password:
+          type: string
+          minLength: 6
+          pattern: ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$
+          example: NewPass123
+          description: New password (min 6 chars, must contain uppercase, lowercase and number)
+        isActive:
+          type: boolean
+          example: true
+          description: User active status
+
+    UserResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        email:
+          type: string
+          example: new.email@example.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        role:
+          type: string
+          enum: [BUYER, SELLER, ADMIN, SUPER_ADMIN]
+          example: BUYER
+        isActive:
+          type: boolean
+          example: true
+        isEmailVerified:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-03-20T10:00:00.000Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-03-20T10:00:00.000Z
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: User updated successfully
+        data:
+          $ref: '#/components/schemas/UserResponse'
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Error message
+            statusCode:
+              type: integer
+              example: 400
+            status:
+              type: string
+              example: error
+
+paths:
+  /admin/users/{id}:
+    patch:
+      tags:
+        - User
+      summary: Update user information by admin
+      description: |
+        Update user information including email, password, and active status.
+        Only SUPER_ADMIN and ADMIN can access this endpoint.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidEmail:
+                  value:
+                    success: false
+                    error:
+                      message: Invalid email format
+                      statusCode: 400
+                      status: error
+                invalidPassword:
+                  value:
+                    success: false
+                    error:
+                      message: Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, and one number
+                      statusCode: 400
+                      status: error
+                noFields:
+                  value:
+                    success: false
+                    error:
+                      message: No fields provided for update
+                      statusCode: 400
+                      status: error
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingToken:
+                  value:
+                    success: false
+                    error:
+                      message: Access token is required
+                      statusCode: 401
+                      status: error
+                invalidToken:
+                  value:
+                    success: false
+                    error:
+                      message: Invalid token
+                      statusCode: 401
+                      status: error
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                forbidden:
+                  value:
+                    success: false
+                    error:
+                      message: Forbidden access
+                      statusCode: 403
+                      status: error
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  value:
+                    success: false
+                    error:
+                      message: User not found
+                      statusCode: 404
+                      status: error 

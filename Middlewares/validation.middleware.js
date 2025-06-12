@@ -460,6 +460,74 @@ const validateCancelSellerRequest = async (req, res, next) => {
   }
 };
 
+/**
+ * Middleware to validate user update request by admin
+ * Validates and filters:
+ * - email: valid email format
+ * - password: at least 6 characters, contains uppercase, lowercase and number
+ * - isActive: boolean
+ * @returns {Array} Array of validation middleware functions
+ */
+const validateUpdateUser = () => [
+  body('email')
+    .optional()
+    .trim()
+    .matches(REGEX_PATTERNS.EMAIL)
+    .withMessage(MESSAGES.VALIDATION.INVALID_EMAIL),
+
+  body('password')
+    .optional()
+    .matches(REGEX_PATTERNS.PASSWORD)
+    .withMessage(MESSAGES.VALIDATION.PASSWORD_LENGTH),
+
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean value'),
+
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg);
+      throw new AppError(errorMessages.join(', '), 400);
+    }
+
+    // Filter only validated fields
+    const allowedFields = ['email', 'password', 'isActive'];
+    const filteredData = {};
+
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        filteredData[field] = req.body[field];
+      }
+    });
+
+    // Check if there are any fields to update
+    if (Object.keys(filteredData).length === 0) {
+      throw new AppError(MESSAGES.VALIDATION.NO_FIELDS_TO_UPDATE, 400);
+    }
+
+    // Replace request body with filtered data
+    req.body = filteredData;
+
+    // Business: Check user exists
+    const { id } = req.params;
+    const { email } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return next(new AppError('Invalid user id', 400));
+    }
+    const user = await User.findById(id);
+    if (!user) {
+      return next(new AppError(MESSAGES.USER.NOT_FOUND, 404));
+    }
+    // Business: Check email unique
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return next(new AppError(MESSAGES.AUTH.EMAIL_EXISTS, 400));
+      }
+    }
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -470,4 +538,5 @@ module.exports = {
   validateProcessSellerRequest,
   validateGetUsers,
   validateCancelSellerRequest,
+  validateUpdateUser,
 };
