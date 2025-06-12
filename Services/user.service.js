@@ -56,6 +56,31 @@ class AdminService extends BaseService {
       filter
     );
   }
+
+  /**
+   * Update user information by admin
+   * @param {string} id - User ID
+   * @param {Object} updateData - Data to update
+   * @param {string} [updateData.email] - New email
+   * @param {string} [updateData.password] - New password
+   * @param {boolean} [updateData.isActive] - Active status
+   * @returns {Promise<Object>} Updated user data
+   */
+  async updateUser(id, updateData) {
+    // Find user (assume validation already done in middleware)
+    const user = await this.model.findById(id);
+
+    // Update fields
+    if (updateData.email) user.email = updateData.email;
+    if (updateData.password) user.password = updateData.password;
+    if (updateData.isActive !== undefined) user.isActive = updateData.isActive;
+
+    // Save to trigger pre('save')
+    await user.save();
+
+    // Return public user info
+    return user.toPublicJSON();
+  }
 }
 
 module.exports = new AdminService();
