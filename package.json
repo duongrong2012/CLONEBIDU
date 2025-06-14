@@ -22,8 +22,10 @@
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "mongoose-paginate-v2": "^1.9.1",
     "multer": "^2.0.0",
+    "slugify": "^1.6.6",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "uuidv4": "^6.2.13",
     "yaml": "^2.8.0"
   },
   "devDependencies": {

@@ -161,6 +161,12 @@ const SUPPORTED_FILE_TYPES = {
   },
 };
 
+const CATEGORY_LEVEL = {
+  ROOT: 0,
+  CHILD: 1,
+  GRANDCHILD: 2,
+};
+
 module.exports = {
   ERROR_CODES,
   COOKIE_OPTIONS,
@@ -177,4 +183,5 @@ module.exports = {
   IMAGE_OWNER_TYPE,
   MEDIA_TYPE,
   SUPPORTED_FILE_TYPES,
+  CATEGORY_LEVEL,
 };

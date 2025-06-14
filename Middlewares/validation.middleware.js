@@ -8,6 +8,10 @@ const User = require('../Models/user.model');
 const BecomeSellerRequest = require('../Models/becomeSellerRequest.model');
 const { SELLER_REQUEST_STATUS, USER_ROLES } = require('../Utils/constant');
 const mongoose = require('mongoose');
+const Category = require('../Models/category.model');
+const { CATEGORY_LEVEL } = require('../Utils/constant');
+const slugify = require('slugify');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * Middleware to validate user registration fields
@@ -528,6 +532,62 @@ const validateUpdateUser = () => [
   },
 ];
 
+const validateCreateCategory = () => [
+  // Required fields
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Category name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Category name must be between 2 and 50 characters'),
+
+  // Optional fields
+  body('parentId').optional().isMongoId().withMessage('Invalid parent category ID'),
+
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean value'),
+
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg);
+      throw new AppError(errorMessages.join(', '), 400);
+    }
+
+    // Filter only valid fields
+    const allowedFields = ['name', 'parentId', 'isActive'];
+    const filteredData = {};
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        filteredData[field] = req.body[field];
+      }
+    });
+
+    // Generate unique slug from name
+    const baseSlug = slugify(filteredData.name, {
+      lower: true,
+      strict: true,
+      locale: 'vi',
+    });
+    filteredData.slug = `${baseSlug}-${uuidv4().slice(0, 8)}`;
+
+    // Business validation: Check parent category if parentId exists
+    const { parentId } = filteredData;
+    if (parentId) {
+      const parent = await Category.findById(parentId);
+      if (!parent) {
+        return next(new AppError('Parent category not found', 404));
+      }
+      if (parent.level >= CATEGORY_LEVEL.GRANDCHILD) {
+        return next(new AppError('Cannot create category deeper than grandchild level', 400));
+      }
+    }
+
+    // Replace request body with filtered data
+    req.body = filteredData;
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -539,4 +599,5 @@ module.exports = {
   validateGetUsers,
   validateCancelSellerRequest,
   validateUpdateUser,
+  validateCreateCategory,
 };
