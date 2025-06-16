@@ -92,6 +92,39 @@ class CategoryService extends BaseService {
     if (!parent) return false;
     return parent.children.filter(cid => String(cid) !== String(exceptId)).length > 0;
   }
+
+  /**
+   * Get categories with pagination and filters
+   * @param {Object} query - Query parameters
+   * @returns {Promise<Object>} Paginated categories
+   */
+  async getCategories(query) {
+    // Build filter
+    const filter = {};
+
+    // Search by name
+    if (query.search) {
+      filter.name = { $regex: query.search, $options: 'i' };
+    }
+
+    // Filter by parent
+    if (query.parentId !== undefined) {
+      filter.parentId = query.parentId;
+    }
+
+    // Filter by level
+    if (query.level !== undefined) {
+      filter.level = query.level;
+    }
+
+    // Filter by active status
+    if (query.isActive !== undefined) {
+      filter.isActive = query.isActive;
+    }
+
+    // Execute paginated query
+    return this.paginate(query, filter);
+  }
 }
 
 module.exports = new CategoryService();

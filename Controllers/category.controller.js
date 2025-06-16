@@ -26,7 +26,27 @@ const updateCategory = catchAsync(async (req, res) => {
   return res.json(response.success(updatedCategory));
 });
 
+/**
+ * Get categories with pagination and filters
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const getCategories = async (req, res, next) => {
+  try {
+    const result = await categoryService.getCategories(req.query);
+    res
+      .status(200)
+      .json(
+        response.success('Categories retrieved successfully', response.groupPagination(result))
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createCategory,
   updateCategory,
+  getCategories,
 };

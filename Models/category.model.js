@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { CATEGORY_LEVEL } = require('../Utils/constant');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const categorySchema = new mongoose.Schema(
   {
@@ -51,6 +52,9 @@ const categorySchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Add pagination plugin
+categorySchema.plugin(mongoosePaginate);
 
 const Category = mongoose.model('Category', categorySchema);
 
