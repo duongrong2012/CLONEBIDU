@@ -588,6 +588,92 @@ const validateCreateCategory = () => [
   },
 ];
 
+const validateUpdateCategory = () => [
+  // Optional fields for update
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Category name must be between 2 and 50 characters'),
+
+  body('parentId')
+    .optional()
+    .custom(value => {
+      if (value === null) return true;
+      return mongoose.Types.ObjectId.isValid(value);
+    })
+    .withMessage('Invalid parent category ID'),
+
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean value'),
+
+  async (req, res, next) => {
+    // Validate request
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg);
+      throw new AppError(errorMessages.join(', '), 400);
+    }
+
+    // Only allow valid fields
+    const allowedFields = ['name', 'parentId', 'isActive'];
+    const filteredData = {};
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        filteredData[field] = req.body[field];
+      }
+    });
+
+    // Check if there are any fields to update
+    if (Object.keys(filteredData).length === 0) {
+      throw new AppError('No fields to update', 400);
+    }
+
+    // Generate unique slug from name if name is provided
+    if (filteredData.name) {
+      const baseSlug = slugify(filteredData.name, {
+        lower: true,
+        strict: true,
+        locale: 'vi',
+      });
+      filteredData.slug = `${baseSlug}-${uuidv4().slice(0, 8)}`;
+    }
+
+    // Business validation: Check category existence
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return next(new AppError('Invalid category id', 400));
+    }
+    const category = await Category.findById(id);
+    if (!category) {
+      return next(new AppError('Category not found', 404));
+    }
+
+    // If parentId is being changed, check for children
+    if (
+      filteredData.parentId !== undefined &&
+      filteredData.parentId !== String(category.parentId)
+    ) {
+      if (category.children && category.children.length > 0) {
+        return next(new AppError('Cannot change parent of a category with children', 400));
+      }
+      // Check new parent exists and is valid if not null
+      if (filteredData.parentId !== null) {
+        const parent = await Category.findById(filteredData.parentId);
+        if (!parent) {
+          return next(new AppError('Parent category not found', 404));
+        }
+        if (parent.level >= CATEGORY_LEVEL.GRANDCHILD) {
+          return next(new AppError('Cannot set parent to a grandchild category', 400));
+        }
+      }
+    }
+
+    req.category = category; // Attach for controller/service
+    req.body = filteredData;
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -600,4 +686,5 @@ module.exports = {
   validateCancelSellerRequest,
   validateUpdateUser,
   validateCreateCategory,
+  validateUpdateCategory,
 };

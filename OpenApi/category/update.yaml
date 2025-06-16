@@ -1,0 +1,198 @@
+paths:
+  /admin/categories/{id}:
+    patch:
+      tags:
+        - Category
+      summary: Update a category
+      description: |
+        Partially update an existing category by ID. Only admin can perform this action.
+        
+        Notes:
+        - Only send the fields you want to update
+        - If you want to change parent category:
+          * Set parentId to null to make it a root category
+          * Set parentId to another category's ID to make it a child
+          * Cannot change parent if category has children
+        - If you update name, slug will be automatically regenerated
+        - Level will be automatically updated based on parent's level
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Category ID to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                  description: |
+                    Category name (optional)
+                    - Must be between 2-50 characters
+                    - If provided, slug will be regenerated
+                    - Example: "Smartphones"
+                parentId:
+                  type: string
+                  nullable: true
+                  description: |
+                    Parent category ID (optional)
+                    - Set to null to make it a root category
+                    - Set to another category's ID to make it a child
+                    - Cannot be changed if category has children
+                    - Cannot set parent to a grandchild category
+                    - Example: "65f1a2b3c4d5e6f7g8h9i0j1" or null
+                isActive:
+                  type: boolean
+                  description: |
+                    Category status (optional)
+                    - true: Category is active
+                    - false: Category is inactive
+                    - Example: true
+              example:
+                name: "Smartphones"
+                parentId: "65f1a2b3c4d5e6f7g8h9i0j1"
+                isActive: true
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: "65f1a2b3c4d5e6f7g8h9i0j1"
+                        description: "Unique identifier of the category"
+                      name:
+                        type: string
+                        example: "Smartphones"
+                        description: "Category name"
+                      slug:
+                        type: string
+                        example: "smartphones-a1b2c3d4"
+                        description: "Unique URL-friendly identifier"
+                      parentId:
+                        type: string
+                        nullable: true
+                        example: "65f1a2b3c4d5e6f7g8h9i0j1"
+                        description: "ID of parent category (null for root categories)"
+                      level:
+                        type: integer
+                        example: 1
+                        description: "Category level (0 for root, 1 for child, 2 for grandchild)"
+                      children:
+                        type: array
+                        items:
+                          type: string
+                        example: []
+                        description: "Array of child category IDs"
+                      hasChildren:
+                        type: boolean
+                        example: false
+                        description: "Whether the category has any children"
+                      isActive:
+                        type: boolean
+                        example: true
+                        description: "Category status"
+                      createdAt:
+                        type: string
+                        format: date-time
+                        example: "2024-03-15T08:00:00.000Z"
+                        description: "Creation timestamp"
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        example: "2024-03-15T08:00:00.000Z"
+                        description: "Last update timestamp"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Category name must be between 2 and 50 characters"
+                    description: "Validation error message"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Please login to access this resource"
+                    description: "Authentication error message"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "You do not have permission to perform this action"
+                    description: "Authorization error message"
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Category not found"
+                    description: "Resource not found error message"
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Cannot change parent of a category with children"
+                    description: "Business rule violation error message"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
