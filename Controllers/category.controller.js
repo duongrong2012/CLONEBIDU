@@ -1,5 +1,6 @@
 const categoryService = require('../Services/category.service');
 const { catchAsync } = require('../Utils/error.utils');
+const response = require('../Utils/response.utils');
 
 /**
  * Create a new category
@@ -14,6 +15,18 @@ const createCategory = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Update a category by id
+ * @route PUT /admin/categories/:id
+ * @access Private (Admin only)
+ */
+const updateCategory = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const updatedCategory = await categoryService.update(id, req.body, req.category);
+  return res.json(response.success(updatedCategory));
+});
+
 module.exports = {
   createCategory,
+  updateCategory,
 };
