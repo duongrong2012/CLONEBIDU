@@ -674,6 +674,94 @@ const validateUpdateCategory = () => [
   },
 ];
 
+const validateGetCategories = () => [
+  // Pagination
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer').toInt(),
+
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100')
+    .toInt(),
+
+  // Filters
+  query('search')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Search term must be between 2 and 50 characters'),
+
+  query('parentId')
+    .optional()
+    .custom(value => {
+      if (value === null) return true;
+      return mongoose.Types.ObjectId.isValid(value);
+    })
+    .withMessage('Invalid parent category ID'),
+
+  query('level')
+    .optional()
+    .isInt({ min: 0, max: 2 })
+    .withMessage('Level must be between 0 and 2')
+    .toInt(),
+
+  query('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive must be a boolean value')
+    .toBoolean(),
+
+  // Sort
+  query('sortBy')
+    .optional()
+    .isIn(['name', 'level', 'createdAt', 'updatedAt'])
+    .withMessage('Invalid sort field'),
+
+  query('sortOrder')
+    .optional()
+    .isIn(['asc', 'desc'])
+    .withMessage('Sort order must be either asc or desc'),
+
+  // Validation handler
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg);
+      throw new AppError(errorMessages.join(', '), 400);
+    }
+
+    // Filter and sanitize query params
+    const allowedFields = [
+      'page',
+      'limit',
+      'search',
+      'parentId',
+      'level',
+      'isActive',
+      'sortBy',
+      'sortOrder',
+    ];
+
+    const filteredQuery = {};
+    allowedFields.forEach(field => {
+      if (req.query[field] !== undefined) {
+        filteredQuery[field] = req.query[field];
+      }
+    });
+
+    // Set default values
+    filteredQuery.page = filteredQuery.page || 1;
+    filteredQuery.limit = filteredQuery.limit || 10;
+    filteredQuery.sortBy = filteredQuery.sortBy || 'createdAt';
+    filteredQuery.sortOrder = filteredQuery.sortOrder || 'desc';
+
+    // Replace query with filtered data
+    req.query = filteredQuery;
+
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -687,4 +775,5 @@ module.exports = {
   validateUpdateUser,
   validateCreateCategory,
   validateUpdateCategory,
+  validateGetCategories,
 };
