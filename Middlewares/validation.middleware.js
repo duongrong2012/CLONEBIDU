@@ -762,6 +762,115 @@ const validateGetCategories = () => [
   },
 ];
 
+/**
+ * Middleware to validate and filter create product request
+ * Only allows necessary fields, validates types, and handles all errors
+ * Passes validated data to req.validatedData
+ */
+const validateCreateProduct = [
+  body('name')
+    .notEmpty()
+    .withMessage('Product name is required')
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Product name must be 2-100 characters'),
+  body('description').notEmpty().withMessage('Description is required'),
+  body('price')
+    .notEmpty()
+    .withMessage('Price is required')
+    .isNumeric()
+    .withMessage('Price must be a number'),
+  body('discountPrice').optional().isNumeric().withMessage('Discount price must be a number'),
+  body('categories').optional().isArray().withMessage('Categories must be an array of ObjectIds'),
+  body('categories.*').optional().isMongoId().withMessage('Each category must be a valid ObjectId'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
+  body('isFeatured').optional().isBoolean().withMessage('isFeatured must be boolean'),
+  body('metadata').optional().isObject().withMessage('Metadata must be an object'),
+  body('totalRating').optional().isNumeric().withMessage('totalRating must be a number'),
+  body('totalRatingPoints')
+    .optional()
+    .isNumeric()
+    .withMessage('totalRatingPoints must be a number'),
+  body('quantity').optional().isNumeric().withMessage('Quantity must be a number'),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(
+        new AppError(
+          errors
+            .array()
+            .map(e => e.msg)
+            .join(', '),
+          400
+        )
+      );
+    }
+    // Filter only allowed fields
+    const allowedFields = [
+      'name',
+      'description',
+      'price',
+      'discountPrice',
+      'categories',
+      'isActive',
+      'isFeatured',
+      'metadata',
+      'totalRating',
+      'totalRatingPoints',
+      'quantity',
+    ];
+    const filteredData = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) filteredData[key] = req.body[key];
+    }
+    // Required fields
+    if (!filteredData.name || !filteredData.description || filteredData.price === undefined) {
+      return next(new AppError('Missing required fields: name, description, price', 400));
+    }
+    // price, discountPrice, quantity, totalRating, totalRatingPoints >= 0
+    if (Number(filteredData.price) < 0) {
+      return next(new AppError('Price cannot be negative', 400));
+    }
+    if (filteredData.discountPrice !== undefined && Number(filteredData.discountPrice) < 0) {
+      return next(new AppError('Discount price cannot be negative', 400));
+    }
+    if (filteredData.quantity !== undefined && Number(filteredData.quantity) < 0) {
+      return next(new AppError('Quantity cannot be negative', 400));
+    }
+    if (filteredData.totalRating !== undefined && Number(filteredData.totalRating) < 0) {
+      return next(new AppError('Total rating cannot be negative', 400));
+    }
+    if (
+      filteredData.totalRatingPoints !== undefined &&
+      Number(filteredData.totalRatingPoints) < 0
+    ) {
+      return next(new AppError('Total rating points cannot be negative', 400));
+    }
+    // discountPrice <= price
+    if (
+      filteredData.discountPrice !== undefined &&
+      filteredData.price !== undefined &&
+      Number(filteredData.discountPrice) > Number(filteredData.price)
+    ) {
+      return next(new AppError('Discount price cannot be greater than price', 400));
+    }
+    // Check categories exist and no duplicate
+    if (filteredData.categories && filteredData.categories.length > 0) {
+      // Duplicate check
+      const uniqueCategories = new Set(filteredData.categories.map(String));
+      if (uniqueCategories.size !== filteredData.categories.length) {
+        return next(new AppError('Duplicate category in categories array', 400));
+      }
+      // Existence check
+      const found = await Category.find({ _id: { $in: filteredData.categories } });
+      if (found.length !== filteredData.categories.length) {
+        return next(new AppError('One or more categories do not exist', 400));
+      }
+    }
+    req.validatedData = filteredData;
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -776,4 +885,5 @@ module.exports = {
   validateCreateCategory,
   validateUpdateCategory,
   validateGetCategories,
+  validateCreateProduct,
 };

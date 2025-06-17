@@ -1,0 +1,183 @@
+paths:
+  /admin/products:
+    post:
+      tags:
+        - Product
+      summary: Create a new product
+      description: |
+        Create a new product. Only users with role SUPER_ADMIN or ADMIN can access this endpoint.
+        All input data is strictly validated and filtered by middleware before reaching the controller.
+        - Required fields: name, description, price
+        - price, discountPrice, quantity, totalRating, totalRatingPoints must be >= 0
+        - discountPrice cannot be greater than price
+        - categories must be an array of valid ObjectIds, no duplicates, all must exist in DB
+        - No duplicate categories allowed
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - description
+                - price
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  description: Product name
+                  example: "iPhone 15 Pro Max"
+                description:
+                  type: string
+                  description: Product description
+                  example: "Latest Apple flagship phone"
+                price:
+                  type: number
+                  minimum: 0
+                  description: Product price (must be >= 0)
+                  example: 30000000
+                discountPrice:
+                  type: number
+                  minimum: 0
+                  description: Discounted price (must be >= 0 and <= price)
+                  example: 25000000
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^[a-fA-F0-9]{24}$"
+                  description: Array of category ObjectIds (must exist, no duplicates)
+                  example: ["65f1a2b3c4d5e6f7g8h9i0j1"]
+                isActive:
+                  type: boolean
+                  description: Product active status
+                  example: true
+                isFeatured:
+                  type: boolean
+                  description: Is product featured
+                  example: false
+                metadata:
+                  type: object
+                  description: Dynamic attributes (size, color, brand, etc.)
+                  example:
+                    size: ["S", "M", "L"]
+                    color: ["Red", "Blue"]
+                    brand: "Nike"
+                totalRating:
+                  type: number
+                  minimum: 0
+                  description: Total number of ratings (>= 0)
+                  example: 0
+                totalRatingPoints:
+                  type: number
+                  minimum: 0
+                  description: Total rating points (>= 0)
+                  example: 0
+                quantity:
+                  type: number
+                  minimum: 0
+                  description: Product stock quantity (>= 0)
+                  example: 100
+      responses:
+        '200':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          description: Bad request (validation or business rule error)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "Discount price cannot be greater than price"
+        '401':
+          description: Unauthorized (missing or invalid token)
+        '403':
+          description: Forbidden (not admin or super admin)
+        '404':
+          description: Category not found (if any category does not exist)
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+        name:
+          type: string
+          example: "iPhone 15 Pro Max"
+        slug:
+          type: string
+          example: "iphone-15-pro-max-1a2b3c4d"
+        description:
+          type: string
+          example: "Latest Apple flagship phone"
+        price:
+          type: number
+          example: 30000000
+        discountPrice:
+          type: number
+          example: 25000000
+        categories:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+          example: ["65f1a2b3c4d5e6f7g8h9i0j1"]
+        isActive:
+          type: boolean
+          example: true
+        isFeatured:
+          type: boolean
+          example: false
+        metadata:
+          type: object
+          example:
+            size: ["S", "M", "L"]
+            color: ["Red", "Blue"]
+            brand: "Nike"
+        totalRating:
+          type: number
+          example: 0
+        totalRatingPoints:
+          type: number
+          example: 0
+        quantity:
+          type: number
+          example: 100
+        createdBy:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T12:00:00.000Z"
