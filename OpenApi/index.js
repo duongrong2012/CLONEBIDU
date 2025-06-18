@@ -17,6 +17,8 @@ const userDir = path.join(__dirname, 'user');
 const userFiles = fs.readdirSync(userDir);
 const categoryDir = path.join(__dirname, 'category');
 const categoryFiles = fs.readdirSync(categoryDir);
+const productDir = path.join(__dirname, 'product');
+const productFiles = fs.readdirSync(productDir);
 
 // Merge all YAML files
 const mergedSpec = {
@@ -84,5 +86,6 @@ mergeYamlFilesFromDir(uploadDir, uploadFiles);
 mergeYamlFilesFromDir(sellerDir, sellerFiles);
 mergeYamlFilesFromDir(userDir, userFiles);
 mergeYamlFilesFromDir(categoryDir, categoryFiles);
+mergeYamlFilesFromDir(productDir, productFiles);
 
 module.exports = mergedSpec;
