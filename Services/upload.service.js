@@ -3,6 +3,7 @@ const { AppError } = require('../Utils/error.utils');
 const { MEDIA_TYPE, SUPPORTED_FILE_TYPES, IMAGE_OWNER_TYPE } = require('../Utils/constant');
 const Media = require('../Models/media.model');
 const User = require('../Models/user.model');
+const Category = require('../Models/category.model');
 const BaseService = require('./base.service');
 const mongoose = require('mongoose');
 
@@ -106,6 +107,32 @@ class UploadService extends BaseService {
     }
 
     return updatedUser.toPublicJSON();
+  }
+
+  /**
+   * Update category image using uploaded media
+   * @param {string} mediaId - ID of the uploaded media
+   * @param {string} categoryId - ID of the category
+   * @returns {Promise<Object>} Updated category object
+   */
+  async updateCategoryImage(mediaId, categoryId) {
+    // Update media with owner info
+    const updatedMedia = await this.update(mediaId, {
+      ownerType: IMAGE_OWNER_TYPE.CATEGORY,
+      ownerId: categoryId,
+    });
+
+    if (!updatedMedia) {
+      return null;
+    }
+
+    // Update category image
+    const updatedCategory = await Category.findByIdAndUpdate(
+      categoryId,
+      { image: updatedMedia.url },
+      { new: true }
+    );
+    return updatedCategory;
   }
 }
 

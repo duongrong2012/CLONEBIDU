@@ -3,6 +3,8 @@ const uploadController = require('../Controllers/upload.controller');
 const { validateFileUpload, handleValidationErrors } = require('../Middlewares/upload.middleware');
 const { verifyToken } = require('../Middlewares/auth.middleware');
 const { configureMulter } = require('../Utils/upload.utils');
+const { USER_ROLES } = require('../Utils/constant');
+const { validateUpdateCategoryImage } = require('../Middlewares/validation.middleware');
 
 const router = express.Router();
 
@@ -26,5 +28,17 @@ router.post(
  * @access Private
  */
 router.patch('/avatar', verifyToken(), uploadController.updateUserAvatar);
+
+/**
+ * @route PATCH /api/upload/category/:categoryId/image
+ * @desc Update category image using uploaded media
+ * @access Private (Admin only)
+ */
+router.patch(
+  '/category/:categoryId/image',
+  verifyToken([USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN]),
+  validateUpdateCategoryImage(),
+  uploadController.updateCategoryImage
+);
 
 module.exports = router;
