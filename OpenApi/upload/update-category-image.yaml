@@ -1,0 +1,189 @@
+openapi: 3.0.0
+info:
+  title: Update Category Image API
+  version: 1.0.0
+  description: API for updating category image using uploaded media
+
+paths:
+  /api/upload/category/{categoryId}/image:
+    patch:
+      tags:
+        - Upload
+      summary: Update category image using uploaded media
+      description: |
+        Update category image by linking an uploaded media file to the category.
+        - Requires admin authentication
+        - mediaId must be from a successful upload
+        - Category must exist
+        - Media must exist and not be owned by another entity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ObjectId
+          description: ID of the category to update image
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaId
+              properties:
+                mediaId:
+                  type: string
+                  format: ObjectId
+                  description: ID of the uploaded media file
+                  example: "65f1a2b3c4d5e6f7g8h9i0j2"
+      responses:
+        '200':
+          description: Category image updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Category image updated successfully
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: "65f1a2b3c4d5e6f7g8h9i0j1"
+                      name:
+                        type: string
+                        example: "Electronics"
+                      image:
+                        type: string
+                        example: "https://storage.bizflycloud.vn/CATEGORY/1234567890-image.jpg"
+                      slug:
+                        type: string
+                        example: "electronics"
+                      level:
+                        type: integer
+                        example: 0
+                      parentId:
+                        type: string
+                        nullable: true
+                        example: null
+                      hasChildren:
+                        type: boolean
+                        example: false
+                      isActive:
+                        type: boolean
+                        example: true
+                      createdAt:
+                        type: string
+                        format: date-time
+                        example: "2024-03-20T10:00:00.000Z"
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        example: "2024-03-20T10:00:00.000Z"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                invalidCategoryId:
+                  value:
+                    status: error
+                    message: "Invalid category ID format"
+                invalidMediaId:
+                  value:
+                    status: error
+                    message: "Invalid media ID format"
+                mediaOwned:
+                  value:
+                    status: error
+                    message: "Media is already owned by another entity"
+                mediaOwnedByCategory:
+                  value:
+                    status: error
+                    message: "Media is already owned by another category"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    message: "Access token is required"
+                invalidToken:
+                  value:
+                    status: error
+                    message: "Invalid token"
+                expiredToken:
+                  value:
+                    status: error
+                    message: "Token has expired"
+                notAdmin:
+                  value:
+                    status: error
+                    message: "Access denied. Admin privileges required"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                categoryNotFound:
+                  value:
+                    status: error
+                    message: "Category not found"
+                mediaNotFound:
+                  value:
+                    status: error
+                    message: "Media not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                updateError:
+                  value:
+                    status: error
+                    message: "Failed to update category image" 

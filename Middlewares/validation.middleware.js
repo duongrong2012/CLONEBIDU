@@ -1,6 +1,6 @@
 const { AppError } = require('../Utils/error.utils');
 const { MESSAGES, REGEX_PATTERNS, GENDERS } = require('../Utils/constant');
-const { body, validationResult, query } = require('express-validator');
+const { body, validationResult, query, param } = require('express-validator');
 const validationUtils = require('../Utils/validation.utils');
 const { HTTP_STATUS } = require('../Utils/constant');
 const response = require('../Utils/response.utils');
@@ -12,6 +12,8 @@ const Category = require('../Models/category.model');
 const { CATEGORY_LEVEL } = require('../Utils/constant');
 const slugify = require('slugify');
 const { v4: uuidv4 } = require('uuid');
+const Media = require('../Models/media.model');
+const { IMAGE_OWNER_TYPE } = require('../Utils/constant');
 
 /**
  * Middleware to validate user registration fields
@@ -762,6 +764,78 @@ const validateGetCategories = () => [
   },
 ];
 
+/**
+ * Middleware to validate update category image request
+ * Validates:
+ * - mediaId: required, valid ObjectId format
+ * - categoryId: valid ObjectId format
+ * @returns {Array} Array of validation middleware functions
+ */
+const validateUpdateCategoryImage = () => [
+  param('categoryId').isMongoId().withMessage('Invalid category ID format'),
+
+  body('mediaId')
+    .notEmpty()
+    .withMessage('Media ID is required')
+    .isMongoId()
+    .withMessage('Invalid media ID format'),
+
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(err => err.msg);
+        throw new AppError(errorMessages.join(', '), 400);
+      }
+
+      // Filter only validated fields
+      const allowedFields = ['mediaId'];
+      const filteredData = {};
+
+      allowedFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          filteredData[field] = req.body[field];
+        }
+      });
+
+      // Replace request body with filtered data
+      req.body = filteredData;
+
+      // Business: Check category exists
+      const { categoryId } = req.params;
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        throw new AppError('Category not found', 404);
+      }
+
+      // Business: Check media exists and is not owned by another entity
+      const { mediaId } = req.body;
+      const media = await Media.findById(mediaId);
+      if (!media) {
+        throw new AppError('Media not found', 404);
+      }
+
+      if (media.ownerType && media.ownerType !== IMAGE_OWNER_TYPE.CATEGORY) {
+        throw new AppError('Media is already owned by another entity', 400);
+      }
+
+      if (media.ownerId && media.ownerId.toString() !== categoryId) {
+        throw new AppError('Media is already owned by another category', 400);
+      }
+
+      // Add validated data to request for use in controller
+      req.validatedData = {
+        categoryId,
+        mediaId,
+      };
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -776,4 +850,5 @@ module.exports = {
   validateCreateCategory,
   validateUpdateCategory,
   validateGetCategories,
+  validateUpdateCategoryImage,
 };
