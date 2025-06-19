@@ -93,4 +93,7 @@ ProductSchema.pre('save', function (next) {
  */
 ProductSchema.index({ name: 'text' });
 
+// Add pagination plugin
+ProductSchema.plugin(require('mongoose-paginate-v2'));
+
 module.exports = mongoose.model('Product', ProductSchema);

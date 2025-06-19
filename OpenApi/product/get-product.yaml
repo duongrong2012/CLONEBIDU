@@ -1,0 +1,278 @@
+openapi: 3.0.0
+info:
+  title: Get Products API
+  description: Get a paginated list of products with filtering and sorting options.
+  version: 1.0.0
+
+paths:
+  /admin/products:
+    get:
+      tags:
+        - Product
+      summary: Get products
+      description: |
+        Get a paginated list of products with filtering and sorting options.
+        - Filter by name (accent/case insensitive), price, discountPrice, isActive, isFeatured, categories, createdBy, quantity, createdAt, updatedAt
+        - Pagination and sorting supported
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Number of items per page
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [name, price, createdAt, updatedAt, quantity]
+            default: createdAt
+          description: Field to sort by
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+        - name: name
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          description: Filter by product name (accent/case insensitive)
+        - name: priceMin
+          in: query
+          schema:
+            type: number
+          description: Minimum price
+        - name: priceMax
+          in: query
+          schema:
+            type: number
+          description: Maximum price
+        - name: discountPriceMin
+          in: query
+          schema:
+            type: number
+          description: Minimum discount price
+        - name: discountPriceMax
+          in: query
+          schema:
+            type: number
+          description: Maximum discount price
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filter by active status
+        - name: isFeatured
+          in: query
+          schema:
+            type: boolean
+          description: Filter by featured status
+        - name: categories
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              pattern: '^[a-fA-F0-9]{24}$'
+          style: form
+          explode: true
+          description: Filter by category IDs (array of ObjectId)
+        - name: createdBy
+          in: query
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+          description: Filter by creator user ID
+        - name: quantityMin
+          in: query
+          schema:
+            type: number
+          description: Minimum quantity
+        - name: quantityMax
+          in: query
+          schema:
+            type: number
+          description: Maximum quantity
+        - name: createdAtFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Created at from (ISO8601)
+        - name: createdAtTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Created at to (ISO8601)
+        - name: updatedAtFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Updated at from (ISO8601)
+        - name: updatedAtTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Updated at to (ISO8601)
+      responses:
+        '200':
+          description: Successfully retrieved products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Products retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationInfo'
+        '400':
+          description: Bad Request - Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPage:
+                  value: { status: error, code: 400, message: Page must be a positive integer }
+                invalidLimit:
+                  value: { status: error, code: 400, message: Limit must be between 1 and 100 }
+                invalidSortOrder:
+                  value: { status: error, code: 400, message: Sort order must be either asc or desc }
+                invalidName:
+                  value: { status: error, code: 400, message: Name must be 1-100 characters }
+                invalidPrice:
+                  value: { status: error, code: 400, message: priceMin must be a number }
+                invalidCategory:
+                  value: { status: error, code: 400, message: Each category must be a valid ObjectId }
+                invalidCreatedBy:
+                  value: { status: error, code: 400, message: createdBy must be a valid ObjectId }
+                invalidDate:
+                  value: { status: error, code: 400, message: createdAtFrom must be a valid date }
+                minGreaterThanMax:
+                  value: { status: error, code: 400, message: priceMin cannot be greater than priceMax }
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: '60f7c0b8e1b1c8a1b8e1b1c8'
+        name:
+          type: string
+          example: 'Laptop Dell XPS 13'
+        slug:
+          type: string
+          example: 'laptop-dell-xps-13-12345678'
+        description:
+          type: string
+          example: 'A high-end ultrabook with Intel i7 processor.'
+        price:
+          type: number
+          example: 25000000
+        discountPrice:
+          type: number
+          example: 22000000
+        images:
+          type: array
+          items:
+            type: string
+            example: 'https://example.com/image.jpg'
+        categories:
+          type: array
+          items:
+            type: string
+            example: '60f7c0b8e1b1c8a1b8e1b1c8'
+        isActive:
+          type: boolean
+          example: true
+        isFeatured:
+          type: boolean
+          example: false
+        metadata:
+          type: object
+          additionalProperties: true
+          example: { color: 'black', brand: 'Dell', size: '13 inch' }
+        totalRating:
+          type: number
+          example: 4.5
+        totalRatingPoints:
+          type: number
+          example: 100
+        quantity:
+          type: number
+          example: 10
+        createdBy:
+          type: string
+          example: '60f7c0b8e1b1c8a1b8e1b1c8'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-06-01T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2024-06-01T10:00:00.000Z'
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 10
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message 
