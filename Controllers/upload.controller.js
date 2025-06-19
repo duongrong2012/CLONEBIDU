@@ -60,6 +60,27 @@ class UploadController {
 
     return res.status(200).json(response.success('Category image updated successfully', result));
   });
+
+  /**
+   * Upload product images (link media to product)
+   * @route PATCH /api/upload/product/:productId/images
+   * @access Private (Admin, Seller)
+   */
+  uploadProductImages = catchAsync(async (req, res) => {
+    const { product, mediaIds, medias } = req.validatedData;
+    const {
+      product: updatedProduct,
+      success,
+      failed,
+    } = await uploadService.uploadProductImages(product, mediaIds, medias);
+    const message =
+      failed.length > 0
+        ? 'Product images updated (partial success)'
+        : 'Product images updated successfully';
+    return res
+      .status(200)
+      .json(response.success(message, { product: updatedProduct, success, failed }));
+  });
 }
 
 module.exports = new UploadController();

@@ -1,0 +1,326 @@
+openapi: 3.0.0
+info:
+  title: Upload Product Images API
+  version: 1.0.0
+  description: API for linking uploaded media files to a product (update product images)
+
+paths:
+  /api/upload/product/{productId}/images:
+    patch:
+      tags:
+        - Upload
+      summary: Upload product images (link media to product)
+      description: |
+        Link uploaded media files to a product by updating the product's images field.
+        - Requires admin, super admin, or seller authentication
+        - mediaIds must be from successful upload
+        - Product must exist
+        - All media must exist and not be owned by another entity/product
+        - All validation and business rules handled in middleware
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ObjectId
+          description: ID of the product to update images
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaIds
+              properties:
+                mediaIds:
+                  type: array
+                  items:
+                    type: string
+                    format: ObjectId
+                  description: Array of uploaded media file IDs
+                  example: ["65f1a2b3c4d5e6f7g8h9i0j2", "65f1a2b3c4d5e6f7g8h9i0j3"]
+      responses:
+        '200':
+          description: Product images updated successfully (partial success if some media failed)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Product images updated successfully
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: "65f1a2b3c4d5e6f7g8h9i0j1"
+                          name:
+                            type: string
+                            example: "iPhone 15 Pro Max"
+                          images:
+                            type: array
+                            items:
+                              type: string
+                            example: ["https://storage.bizflycloud.vn/PRODUCT/1234567890-image1.jpg", "https://storage.bizflycloud.vn/PRODUCT/1234567890-image2.jpg"]
+                          price:
+                            type: number
+                            example: 30000000
+                          description:
+                            type: string
+                            example: "Latest Apple flagship phone"
+                          categories:
+                            type: array
+                            items:
+                              type: string
+                            example: ["65f1a2b3c4d5e6f7g8h9i0j4"]
+                          isActive:
+                            type: boolean
+                            example: true
+                          isFeatured:
+                            type: boolean
+                            example: false
+                          metadata:
+                            type: object
+                            example:
+                              size: ["S", "M", "L"]
+                              color: ["Red", "Blue"]
+                              brand: "Apple"
+                          totalRating:
+                            type: number
+                            example: 100
+                          totalRatingPoints:
+                            type: number
+                            example: 450
+                          quantity:
+                            type: number
+                            example: 50
+                          createdBy:
+                            type: string
+                            example: "65f1a2b3c4d5e6f7g8h9i0j5"
+                          createdAt:
+                            type: string
+                            format: date-time
+                            example: "2024-06-01T12:00:00.000Z"
+                          updatedAt:
+                            type: string
+                            format: date-time
+                            example: "2024-06-01T12:00:00.000Z"
+                      success:
+                        type: array
+                        description: List of successfully updated media
+                        items:
+                          type: object
+                          properties:
+                            mediaId:
+                              type: string
+                              example: "65f1a2b3c4d5e6f7g8h9i0j2"
+                            url:
+                              type: string
+                              example: "https://storage.bizflycloud.vn/PRODUCT/1234567890-image1.jpg"
+                      failed:
+                        type: array
+                        description: List of failed media updates
+                        items:
+                          type: object
+                          properties:
+                            mediaId:
+                              type: string
+                              example: "65f1a2b3c4d5e6f7g8h9i0j3"
+                            reason:
+                              type: string
+                              example: "Media is already owned by another entity"
+              examples:
+                allSuccess:
+                  value:
+                    status: success
+                    message: Product images updated successfully
+                    data:
+                      product:
+                        _id: "65f1a2b3c4d5e6f7g8h9i0j1"
+                        name: "iPhone 15 Pro Max"
+                        images:
+                          - "https://storage.bizflycloud.vn/PRODUCT/1234567890-image1.jpg"
+                          - "https://storage.bizflycloud.vn/PRODUCT/1234567890-image2.jpg"
+                        price: 30000000
+                        description: "Latest Apple flagship phone"
+                        categories: ["65f1a2b3c4d5e6f7g8h9i0j4"]
+                        isActive: true
+                        isFeatured: false
+                        metadata:
+                          size: ["S", "M", "L"]
+                          color: ["Red", "Blue"]
+                          brand: "Apple"
+                        totalRating: 100
+                        totalRatingPoints: 450
+                        quantity: 50
+                        createdBy: "65f1a2b3c4d5e6f7g8h9i0j5"
+                        createdAt: "2024-06-01T12:00:00.000Z"
+                        updatedAt: "2024-06-01T12:00:00.000Z"
+                      success:
+                        - mediaId: "65f1a2b3c4d5e6f7g8h9i0j2"
+                          url: "https://storage.bizflycloud.vn/PRODUCT/1234567890-image1.jpg"
+                        - mediaId: "65f1a2b3c4d5e6f7g8h9i0j3"
+                          url: "https://storage.bizflycloud.vn/PRODUCT/1234567890-image2.jpg"
+                      failed: []
+                partialSuccess:
+                  value:
+                    status: success
+                    message: Product images updated (partial success)
+                    data:
+                      product:
+                        _id: "65f1a2b3c4d5e6f7g8h9i0j1"
+                        name: "iPhone 15 Pro Max"
+                        images:
+                          - "https://storage.bizflycloud.vn/PRODUCT/1234567890-image1.jpg"
+                        price: 30000000
+                        description: "Latest Apple flagship phone"
+                        categories: ["65f1a2b3c4d5e6f7g8h9i0j4"]
+                        isActive: true
+                        isFeatured: false
+                        metadata:
+                          size: ["S", "M", "L"]
+                          color: ["Red", "Blue"]
+                          brand: "Apple"
+                        totalRating: 100
+                        totalRatingPoints: 450
+                        quantity: 50
+                        createdBy: "65f1a2b3c4d5e6f7g8h9i0j5"
+                        createdAt: "2024-06-01T12:00:00.000Z"
+                        updatedAt: "2024-06-01T12:00:00.000Z"
+                      success:
+                        - mediaId: "65f1a2b3c4d5e6f7g8h9i0j2"
+                          url: "https://storage.bizflycloud.vn/PRODUCT/1234567890-image1.jpg"
+                      failed:
+                        - mediaId: "65f1a2b3c4d5e6f7g8h9i0j3"
+                          reason: "Media is already owned by another entity"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                invalidProductId:
+                  value:
+                    status: error
+                    message: "Invalid product ID format"
+                invalidMediaIds:
+                  value:
+                    status: error
+                    message: "mediaIds must be a non-empty array"
+                invalidMediaId:
+                  value:
+                    status: error
+                    message: "Each mediaId must be a valid ObjectId"
+                duplicateMediaId:
+                  value:
+                    status: error
+                    message: "Duplicate mediaId in mediaIds array"
+                productNotFound:
+                  value:
+                    status: error
+                    message: "Product not found"
+                mediaNotFound:
+                  value:
+                    status: error
+                    message: "One or more media not found"
+                mediaOwned:
+                  value:
+                    status: error
+                    message: "Media is already owned by another entity"
+                mediaOwnedByProduct:
+                  value:
+                    status: error
+                    message: "Media is already owned by another product"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                noToken:
+                  value:
+                    status: error
+                    message: "Access token is required"
+                invalidToken:
+                  value:
+                    status: error
+                    message: "Invalid token"
+                expiredToken:
+                  value:
+                    status: error
+                    message: "Token has expired"
+                notAllowed:
+                  value:
+                    status: error
+                    message: "Access denied. Admin, super admin, or seller privileges required"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                productNotFound:
+                  value:
+                    status: error
+                    message: "Product not found"
+                mediaNotFound:
+                  value:
+                    status: error
+                    message: "One or more media not found"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                updateError:
+                  value:
+                    status: error
+                    message: "Failed to update product images"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -134,6 +134,37 @@ class UploadService extends BaseService {
     );
     return updatedCategory;
   }
+
+  /**
+   * Upload product images (partial success, report failed media)
+   * @param {Object} product - Product document
+   * @param {Array<string>} mediaIds - Array of media ObjectIds
+   * @param {Array<Object>} medias - Array of media documents
+   * @returns {Promise<Object>} { product, success, failed }
+   */
+  async uploadProductImages(product, mediaIds, medias) {
+    const results = await Promise.allSettled(
+      medias.map(media =>
+        media.updateOne({ ownerType: IMAGE_OWNER_TYPE.PRODUCT, ownerId: product._id })
+      )
+    );
+    const success = [];
+    const failed = [];
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].status === 'fulfilled') {
+        success.push({ mediaId: mediaIds[i], url: medias[i].url });
+      } else {
+        failed.push({
+          mediaId: mediaIds[i],
+          reason: results[i].reason?.message || 'Unknown error',
+        });
+      }
+    }
+    // Update product.images chỉ với url thành công
+    product.images = success.map(item => item.url);
+    await product.save();
+    return { product, success, failed };
+  }
 }
 
 module.exports = new UploadService();
