@@ -62,7 +62,20 @@ class ProductService extends BaseService {
     const product = await Product.create(productData);
     return product;
   }
+
+  /**
+   * Update a product by ID
+   * @param {string} productId - Product ID
+   * @param {Object} updateData - Validated update data
+   * @returns {Promise<Object>} Updated product
+   */
+  async updateProduct(productId, updateData) {
+    const product = await Product.findByIdAndUpdate(productId, updateData, {
+      new: true,
+      runValidators: true,
+    });
+    return product;
+  }
 }
 
-const productService = new ProductService();
-module.exports = productService;
+module.exports = new ProductService();
