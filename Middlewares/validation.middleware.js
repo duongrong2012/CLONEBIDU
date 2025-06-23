@@ -945,6 +945,82 @@ const validateCreateProduct = [
   },
 ];
 
+/**
+ * Middleware to validate and filter get products query
+ * Only allows necessary fields, validates types, and handles all errors
+ * Passes validated data to req.query
+ */
+const validateGetProducts = [
+  ...validatePaginationQuery(),
+  query('name')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Name must be 1-100 characters'),
+  query('priceMin').optional().isNumeric().withMessage('priceMin must be a number'),
+  query('priceMax').optional().isNumeric().withMessage('priceMax must be a number'),
+  query('discountPriceMin').optional().isNumeric().withMessage('discountPriceMin must be a number'),
+  query('discountPriceMax').optional().isNumeric().withMessage('discountPriceMax must be a number'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
+  query('isFeatured').optional().isBoolean().withMessage('isFeatured must be boolean'),
+  query('categories')
+    .optional()
+    .custom(value => {
+      const arr = typeof value === 'string' ? [value] : value; // cast string to array
+      for (const v of arr) {
+        if (!mongoose.Types.ObjectId.isValid(v)) {
+          throw new Error('Each category must be a valid ObjectId');
+        }
+      }
+      return true;
+    }),
+  query('createdBy').optional().isMongoId().withMessage('createdBy must be a valid ObjectId'),
+  query('quantityMin').optional().isNumeric().withMessage('quantityMin must be a number'),
+  query('quantityMax').optional().isNumeric().withMessage('quantityMax must be a number'),
+  query('createdAtFrom').optional().isISO8601().withMessage('createdAtFrom must be a valid date'),
+  query('createdAtTo').optional().isISO8601().withMessage('createdAtTo must be a valid date'),
+  query('updatedAtFrom').optional().isISO8601().withMessage('updatedAtFrom must be a valid date'),
+  query('updatedAtTo').optional().isISO8601().withMessage('updatedAtTo must be a valid date'),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg);
+      return next(new AppError(errorMessages.join(', '), 400));
+    }
+    // Filter only allowed fields
+    const allowedFields = [
+      'page',
+      'limit',
+      'sortBy',
+      'sortOrder',
+      'name',
+      'priceMin',
+      'priceMax',
+      'discountPriceMin',
+      'discountPriceMax',
+      'isActive',
+      'isFeatured',
+      'categories',
+      'createdBy',
+      'quantityMin',
+      'quantityMax',
+      'createdAtFrom',
+      'createdAtTo',
+      'updatedAtFrom',
+      'updatedAtTo',
+    ];
+
+    const filteredQuery = {};
+    allowedFields.forEach(field => {
+      if (req.query[field] !== undefined) {
+        filteredQuery[field] = req.query[field];
+      }
+    });
+    req.validatedQuery = filteredQuery;
+    next();
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -961,4 +1037,5 @@ module.exports = {
   validateGetCategories,
   validateUpdateCategoryImage,
   validateCreateProduct,
+  validateGetProducts,
 };

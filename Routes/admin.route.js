@@ -7,10 +7,11 @@ const {
   validateCreateCategory,
   validateUpdateCategory,
   validateCreateProduct,
+  validateGetProducts,
 } = require('../Middlewares/validation.middleware');
 const { getUsers, updateUser } = require('../Controllers/user.controller');
 const { createCategory, updateCategory } = require('../Controllers/category.controller');
-const { createProduct } = require('../Controllers/product.controller');
+const { createProduct, getProducts } = require('../Controllers/product.controller');
 const { USER_ROLES } = require('../Utils/constant');
 
 router.get('/users', verifyToken(USER_ROLES.SUPER_ADMIN), validateGetUsers(), getUsers);
@@ -37,5 +38,7 @@ router.post(
   validateCreateProduct,
   createProduct
 );
+
+router.get('/products', validateGetProducts, getProducts);
 
 module.exports = router;
