@@ -1,5 +1,7 @@
 const productService = require('../Services/product.service');
 const response = require('../Utils/response.utils');
+const { MESSAGES } = require('../Utils/constant');
+const { catchAsync } = require('../Utils/error.utils');
 
 /**
  * Create a new product
@@ -57,3 +59,21 @@ exports.getProductById = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Rate a product
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.rateProduct = catchAsync(async (req, res) => {
+  // Only use validated data from middleware
+  const ratingData = req.validatedData;
+
+  const result = await ProductService.rateProduct(ratingData);
+
+  const message = result.isNewRating
+    ? MESSAGES.PRODUCT.RATED_SUCCESS
+    : MESSAGES.PRODUCT.RATING_UPDATED;
+
+  return res.json(response.success(message, result));
+});

@@ -92,6 +92,12 @@ const MESSAGES = {
     BIRTHDAY_AGE: 'User must be at least 13 years old',
     NO_FIELDS_TO_UPDATE: 'No fields provided for update',
   },
+  PRODUCT: {
+    NOT_FOUND: 'Product not found',
+    RATED_SUCCESS: 'Product rated successfully',
+    RATING_UPDATED: 'Product rating updated successfully',
+    INACTIVE_PRODUCT: 'Cannot rate inactive product',
+  },
   SEEDER: {
     SUPER_ADMIN_EXISTS: 'Super admin already exists',
     SUPER_ADMIN_CREATED: 'Super admin created successfully',
@@ -132,6 +138,15 @@ const PRODUCT_STATUS = {
 
 const ERROR_CODES = {
   TOKEN_EXPIRED: 40101,
+};
+
+/**
+ * Rating constants
+ */
+const RATING = {
+  MIN: 1,
+  MAX: 5,
+  COMMENT_MAX_LENGTH: 500,
 };
 
 /**
@@ -187,6 +202,7 @@ module.exports = {
   DEFAULT_PAGINATION,
   SELLER_REQUEST_STATUS,
   PRODUCT_STATUS,
+  RATING,
   IMAGE_OWNER_TYPE,
   MEDIA_TYPE,
   SUPPORTED_FILE_TYPES,
