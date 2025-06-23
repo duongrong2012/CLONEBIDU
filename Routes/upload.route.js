@@ -5,6 +5,7 @@ const { verifyToken } = require('../Middlewares/auth.middleware');
 const { configureMulter } = require('../Utils/upload.utils');
 const { USER_ROLES } = require('../Utils/constant');
 const { validateUpdateCategoryImage } = require('../Middlewares/validation.middleware');
+const { validateUploadProductImages } = require('../Middlewares/upload-validation');
 
 const router = express.Router();
 
@@ -39,6 +40,18 @@ router.patch(
   verifyToken([USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN]),
   validateUpdateCategoryImage(),
   uploadController.updateCategoryImage
+);
+
+/**
+ * @route PATCH /api/upload/product/:productId/images
+ * @desc Upload product images (link media to product)
+ * @access Private (Admin, Super Admin, Seller)
+ */
+router.patch(
+  '/product/:productId/images',
+  verifyToken([USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.SELLER]),
+  validateUploadProductImages,
+  uploadController.uploadProductImages
 );
 
 module.exports = router;
