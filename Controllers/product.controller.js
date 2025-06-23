@@ -28,3 +28,16 @@ exports.getProducts = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Update an existing product
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.updateProduct = async (req, res) => {
+  // Only use validated data from middleware
+  const { id } = req.params;
+  const updateData = req.validatedData;
+  const product = await productService.updateProduct(id, updateData);
+  return res.json(response.success(product, 'Product updated successfully'));
+};

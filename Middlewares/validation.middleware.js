@@ -14,6 +14,7 @@ const slugify = require('slugify');
 const { v4: uuidv4 } = require('uuid');
 const Media = require('../Models/media.model');
 const { IMAGE_OWNER_TYPE } = require('../Utils/constant');
+const Product = require('../Models/product.model');
 
 /**
  * Middleware to validate user registration fields
@@ -1021,6 +1022,154 @@ const validateGetProducts = [
   },
 ];
 
+/**
+ * Middleware to validate and filter update product request
+ * Only allows necessary fields, validates types, and handles all errors
+ * Passes validated data to req.validatedData
+ */
+const validateUpdateProduct = [
+  param('id').isMongoId().withMessage('Invalid product ID format'),
+
+  body('name')
+    .optional()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Product name must be 2-100 characters'),
+
+  body('description').optional().isString().withMessage('Description must be a string'),
+
+  body('price').optional().isNumeric().withMessage('Price must be a number'),
+
+  body('discountPrice').optional().isNumeric().withMessage('Discount price must be a number'),
+
+  body('categories')
+    .optional()
+    .custom(value => {
+      const arr = typeof value === 'string' ? [value] : value;
+      if (!Array.isArray(arr)) {
+        throw new Error('categories must be an array or string');
+      }
+      for (const v of arr) {
+        if (!mongoose.Types.ObjectId.isValid(v)) {
+          throw new Error('Each category must be a valid ObjectId');
+        }
+      }
+      return true;
+    }),
+
+  body('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
+
+  body('isFeatured').optional().isBoolean().withMessage('isFeatured must be boolean'),
+
+  body('metadata').optional().isObject().withMessage('Metadata must be an object'),
+
+  body('quantity').optional().isNumeric().withMessage('Quantity must be a number'),
+
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return next(
+          new AppError(
+            errors
+              .array()
+              .map(e => e.msg)
+              .join(', '),
+            400
+          )
+        );
+      }
+
+      // Filter only allowed fields (removed totalRating and totalRatingPoints)
+      const allowedFields = [
+        'name',
+        'description',
+        'price',
+        'discountPrice',
+        'categories',
+        'isActive',
+        'isFeatured',
+        'metadata',
+        'quantity',
+      ];
+
+      const filteredData = {};
+      for (const key of allowedFields) {
+        if (req.body[key] !== undefined) {
+          filteredData[key] = req.body[key];
+        }
+      }
+
+      // Check if there are any fields to update
+      if (Object.keys(filteredData).length === 0) {
+        return next(new AppError('No fields provided for update', 400));
+      }
+
+      // Business validation: price, discountPrice, quantity >= 0
+      if (filteredData.price !== undefined && Number(filteredData.price) < 0) {
+        return next(new AppError('Price cannot be negative', 400));
+      }
+      if (filteredData.discountPrice !== undefined && Number(filteredData.discountPrice) < 0) {
+        return next(new AppError('Discount price cannot be negative', 400));
+      }
+      if (filteredData.quantity !== undefined && Number(filteredData.quantity) < 0) {
+        return next(new AppError('Quantity cannot be negative', 400));
+      }
+
+      // Business validation: discountPrice <= price
+      if (
+        filteredData.discountPrice !== undefined &&
+        filteredData.price !== undefined &&
+        Number(filteredData.discountPrice) > Number(filteredData.price)
+      ) {
+        return next(new AppError('Discount price cannot be greater than price', 400));
+      }
+
+      // Business validation: Check categories exist and no duplicate
+      if (filteredData.categories && filteredData.categories.length > 0) {
+        // Convert to array if string
+        const categories =
+          typeof filteredData.categories === 'string'
+            ? [filteredData.categories]
+            : filteredData.categories;
+
+        // Duplicate check
+        const uniqueCategories = new Set(categories.map(String));
+        if (uniqueCategories.size !== categories.length) {
+          return next(new AppError('Duplicate category in categories array', 400));
+        }
+
+        // Existence check
+        const found = await Category.find({ _id: { $in: categories } });
+        if (found.length !== categories.length) {
+          return next(new AppError('One or more categories do not exist', 400));
+        }
+
+        filteredData.categories = categories;
+      }
+
+      // Business validation: Check product exists
+      const product = await Product.findById(req.params.id);
+      if (!product) {
+        return next(new AppError('Product not found', 404));
+      }
+
+      // Business validation: Check user permissions
+      const user = req.user;
+      if (user.role === USER_ROLES.SELLER && product.createdBy.toString() !== user._id.toString()) {
+        return next(new AppError('You can only update your own products', 403));
+      }
+
+      // Store validated data and product for controller usage
+      req.validatedData = filteredData;
+      req.product = product;
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -1038,4 +1187,5 @@ module.exports = {
   validateUpdateCategoryImage,
   validateCreateProduct,
   validateGetProducts,
+  validateUpdateProduct,
 };

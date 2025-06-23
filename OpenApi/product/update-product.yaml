@@ -1,0 +1,263 @@
+openapi: 3.0.0
+info:
+  title: Update Product API
+  description: Update an existing product with comprehensive validation and permission checks.
+  version: 1.0.0
+
+paths:
+  /admin/products/{id}:
+    patch:
+      tags:
+        - Product
+      summary: Update product
+      description: |
+        Update an existing product with validation and permission checks.
+        - Only SUPER_ADMIN, ADMIN, and SELLER can update products
+        - SELLER can only update their own products
+        - All fields are optional for partial updates
+        - Comprehensive validation for data types, business rules, and relationships
+        - Note: totalRating and totalRatingPoints are calculated automatically and cannot be manually updated
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+          description: Product ID (MongoDB ObjectId)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  description: Product name (optional)
+                description:
+                  type: string
+                  description: Product description (optional)
+                price:
+                  type: number
+                  minimum: 0
+                  description: Product price (optional)
+                discountPrice:
+                  type: number
+                  minimum: 0
+                  description: Discount price (optional, must be <= price)
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    pattern: '^[a-fA-F0-9]{24}$'
+                  description: Category IDs array (optional)
+                isActive:
+                  type: boolean
+                  description: Product active status (optional)
+                isFeatured:
+                  type: boolean
+                  description: Product featured status (optional)
+                metadata:
+                  type: object
+                  description: Dynamic product metadata (optional)
+                quantity:
+                  type: number
+                  minimum: 0
+                  description: Product quantity (optional)
+            examples:
+              basicUpdate:
+                value:
+                  name: "Updated Laptop Dell XPS 13"
+                  price: 1299.99
+                  isActive: true
+              fullUpdate:
+                value:
+                  name: "iPhone 15 Pro Max 2024"
+                  description: "Latest Apple flagship phone, 2024 version"
+                  price: 35000000
+                  discountPrice: 32000000
+                  categories: ["65f1a2b3c4d5e6f7g8h9i0j1", "65f1a2b3c4d5e6f7g8h9i0j2"]
+                  isActive: true
+                  isFeatured: true
+                  metadata:
+                    size: ["S", "M", "L"]
+                    color: ["Red", "Blue"]
+                    brand: "Apple"
+                  quantity: 50
+              updateMetadata:
+                value:
+                  metadata:
+                    brand: "Dell"
+                    model: "XPS 13 2024"
+                    color: "Silver"
+                    weight: "1.2kg"
+              updateCategories:
+                value:
+                  categories: ["60f7c0b8e1b1c8a1b8e1b1c8", "60f7c0b8e1b1c8a1b8e1b1c9"]
+              updatePriceAndDiscount:
+                value:
+                  price: 1199.99
+                  discountPrice: 1099.99
+              updateStatus:
+                value:
+                  isActive: false
+                  isFeatured: true
+              updateQuantity:
+                value:
+                  quantity: 200
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Product updated successfully
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          description: Bad Request - Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidId:
+                  value: { status: error, code: 400, message: "Invalid product ID format" }
+                noFields:
+                  value: { status: error, code: 400, message: "No fields provided for update" }
+                invalidPrice:
+                  value: { status: error, code: 400, message: "Price cannot be negative" }
+                invalidDiscount:
+                  value: { status: error, code: 400, message: "Discount price cannot be greater than price" }
+                invalidCategory:
+                  value: { status: error, code: 400, message: "Each category must be a valid ObjectId" }
+                categoryNotFound:
+                  value: { status: error, code: 400, message: "One or more categories do not exist" }
+                duplicateCategory:
+                  value: { status: error, code: 400, message: "Duplicate category in categories array" }
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                sellerOwnProduct:
+                  value: { status: error, code: 403, message: "You can only update your own products" }
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                productNotFound:
+                  value: { status: error, code: 404, message: "Product not found" }
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - BearerAuth: []
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: '60f7c0b8e1b1c8a1b8e1b1c8'
+        name:
+          type: string
+          example: 'Laptop Dell XPS 13'
+        slug:
+          type: string
+          example: 'laptop-dell-xps-13-a1b2c3d4'
+        description:
+          type: string
+          example: 'High-performance laptop with premium features'
+        price:
+          type: number
+          example: 1299.99
+        discountPrice:
+          type: number
+          example: 1199.99
+        images:
+          type: array
+          items:
+            type: string
+          example: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg']
+        categories:
+          type: array
+          items:
+            type: string
+          example: ['60f7c0b8e1b1c8a1b8e1b1c8', '60f7c0b8e1b1c8a1b8e1b1c9']
+        isActive:
+          type: boolean
+          example: true
+        isFeatured:
+          type: boolean
+          example: false
+        metadata:
+          type: object
+          example:
+            brand: 'Dell'
+            model: 'XPS 13'
+            color: 'Silver'
+            weight: '1.2kg'
+        totalRating:
+          type: number
+          example: 4.5
+          description: Calculated automatically from reviews, cannot be manually updated
+        totalRatingPoints:
+          type: number
+          example: 45
+          description: Calculated automatically from reviews, cannot be manually updated
+        quantity:
+          type: number
+          example: 25
+        createdBy:
+          type: string
+          example: '60f7c0b8e1b1c8a1b8e1b1c8'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2023-07-20T10:30:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2023-07-20T15:45:00.000Z'
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Validation error message 
