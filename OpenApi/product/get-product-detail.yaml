@@ -1,0 +1,232 @@
+openapi: 3.0.0
+info:
+  title: Get Product Detail API
+  description: Get detailed information of a specific product by ID.
+  version: 1.0.0
+
+paths:
+  /admin/products/{productId}:
+    get:
+      tags:
+        - Product
+      summary: Get product detail
+      description: |
+        Get detailed information of a specific product by ID.
+        - **Authentication**: Optional - both authenticated and unauthenticated users can access this endpoint
+        - **Access Control**: Applied at middleware level based on user role and product status
+        - **Guest/Unauthenticated users**: Can only see approved and active products (403 error if not)
+        - **Buyer**: Can only see approved and active products (403 error if not)
+        - **Seller**: Can see their own products with any status, others' products only if approved and active (403 error if not)
+        - **Admin**: Can see all products without restrictions
+      security:
+        - BearerAuth: []
+        - {} # No authentication required
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-fA-F0-9]{24}$'
+          description: Product ID (ObjectId)
+      responses:
+        '200':
+          description: Successfully retrieved product detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Product retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad Request - Invalid product ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidProductId:
+                  value: { status: error, code: 400, message: "Invalid product ID format" }
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                productNotFound:
+                  value: { status: error, code: 404, message: "Product not found" }
+        '403':
+          description: Access denied - Product not available for viewing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                accessDenied:
+                  value: { status: error, code: 403, message: "Product not available for viewing" }
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ProductDetail:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        slug:
+          type: string
+          example: "iphone-15-pro-max-a1b2c3d4"
+        name:
+          type: string
+          example: "iPhone 15 Pro Max"
+        description:
+          type: string
+          example: "Latest iPhone with advanced features"
+        price:
+          type: number
+          example: 1199.99
+        discountPrice:
+          type: number
+          example: 1099.99
+        images:
+          type: array
+          items:
+            type: string
+          example: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryInfo'
+        isActive:
+          type: boolean
+          example: true
+        isFeatured:
+          type: boolean
+          example: false
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          example: APPROVED
+        rejectedReason:
+          type: string
+          example: null
+        metadata:
+          type: object
+          example:
+            brand: "Apple"
+            color: "Titanium"
+            storage: "256GB"
+        totalRating:
+          type: number
+          example: 4.5
+        totalRatingPoints:
+          type: number
+          example: 45
+        quantity:
+          type: number
+          example: 50
+        createdBy:
+          $ref: '#/components/schemas/UserInfo'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+      required:
+        - _id
+        - slug
+        - name
+        - description
+        - price
+        - images
+        - categories
+        - isActive
+        - isFeatured
+        - status
+        - totalRating
+        - totalRatingPoints
+        - quantity
+        - createdBy
+        - createdAt
+        - updatedAt
+
+    CategoryInfo:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439012"
+        name:
+          type: string
+          example: "Smartphones"
+        slug:
+          type: string
+          example: "smartphones"
+      required:
+        - _id
+        - name
+        - slug
+
+    UserInfo:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439013"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        email:
+          type: string
+          example: "john.doe@example.com"
+      required:
+        - _id
+        - firstName
+        - lastName
+        - email
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Invalid product ID format"
+      required:
+        - status
+        - code
+        - message
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
