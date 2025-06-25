@@ -15,6 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 const Media = require('../Models/media.model');
 const { IMAGE_OWNER_TYPE } = require('../Utils/constant');
 const Product = require('../Models/product.model');
+const { PRODUCT_STATUS } = require('../Utils/constant');
 
 /**
  * Middleware to validate user registration fields
@@ -859,6 +860,10 @@ const validateCreateProduct = [
   body('categories.*').optional().isMongoId().withMessage('Each category must be a valid ObjectId'),
   body('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
   body('isFeatured').optional().isBoolean().withMessage('isFeatured must be boolean'),
+  body('status')
+    .optional()
+    .isIn(Object.values(PRODUCT_STATUS))
+    .withMessage(`Status must be one of: ${Object.values(PRODUCT_STATUS).join(', ')}`),
   body('metadata').optional().isObject().withMessage('Metadata must be an object'),
   body('totalRating').optional().isNumeric().withMessage('totalRating must be a number'),
   body('totalRatingPoints')
@@ -893,14 +898,22 @@ const validateCreateProduct = [
       'totalRatingPoints',
       'quantity',
     ];
+
+    // Only admin can set status
+    if (req.user.role === USER_ROLES.ADMIN || req.user.role === USER_ROLES.SUPER_ADMIN) {
+      allowedFields.push('status');
+    }
+
     const filteredData = {};
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) filteredData[key] = req.body[key];
     }
+
     // Required fields
     if (!filteredData.name || !filteredData.description || filteredData.price === undefined) {
       return next(new AppError('Missing required fields: name, description, price', 400));
     }
+
     // price, discountPrice, quantity, totalRating, totalRatingPoints >= 0
     if (Number(filteredData.price) < 0) {
       return next(new AppError('Price cannot be negative', 400));
@@ -964,6 +977,10 @@ const validateGetProducts = [
   query('discountPriceMax').optional().isNumeric().withMessage('discountPriceMax must be a number'),
   query('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
   query('isFeatured').optional().isBoolean().withMessage('isFeatured must be boolean'),
+  query('status')
+    .optional()
+    .isIn(Object.values(PRODUCT_STATUS))
+    .withMessage(`Status must be one of: ${Object.values(PRODUCT_STATUS).join(', ')}`),
   query('categories')
     .optional()
     .custom(value => {
@@ -1001,6 +1018,7 @@ const validateGetProducts = [
       'discountPriceMax',
       'isActive',
       'isFeatured',
+      'status',
       'categories',
       'createdBy',
       'quantityMin',
@@ -1017,6 +1035,33 @@ const validateGetProducts = [
         filteredQuery[field] = req.query[field];
       }
     });
+
+    // Access control for product listing based on user role and query
+    // - Unauthenticated users: can only see approved and active products
+    // - Buyer: can only see approved and active products
+    // - Seller: can see their own products with any status, but only approved and active products of others
+    // - Admin: can see all products
+    const user = req.user;
+    const createdBy = filteredQuery.createdBy?.toString();
+    const currentUserId = user?._id?.toString();
+
+    // Do NOT auto-assign createdBy for seller!
+    // Only limit access if:
+    //   - Not logged in
+    //   - Buyer
+    //   - Seller and (not filtering by createdBy OR filtering by createdBy khác user._id)
+    let shouldLimitAccess =
+      !user ||
+      user.role === USER_ROLES.BUYER ||
+      (user.role === USER_ROLES.SELLER && (!createdBy || createdBy !== currentUserId));
+
+    if (shouldLimitAccess) {
+      // Only show products with status APPROVED and isActive true
+      filteredQuery.status = PRODUCT_STATUS.APPROVED;
+      filteredQuery.isActive = true;
+    }
+    // Admin can see all products (no filter applied)
+
     req.validatedQuery = filteredQuery;
     next();
   },
@@ -1060,6 +1105,17 @@ const validateUpdateProduct = [
 
   body('isFeatured').optional().isBoolean().withMessage('isFeatured must be boolean'),
 
+  body('status')
+    .optional()
+    .isIn(Object.values(PRODUCT_STATUS))
+    .withMessage(`Status must be one of: ${Object.values(PRODUCT_STATUS).join(', ')}`),
+
+  body('rejectedReason')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Rejected reason must be 1-500 characters'),
+
   body('metadata').optional().isObject().withMessage('Metadata must be an object'),
 
   body('quantity').optional().isNumeric().withMessage('Quantity must be a number'),
@@ -1079,7 +1135,7 @@ const validateUpdateProduct = [
         );
       }
 
-      // Filter only allowed fields (removed totalRating and totalRatingPoints)
+      // Filter only allowed fields based on user role
       const allowedFields = [
         'name',
         'description',
@@ -1091,6 +1147,12 @@ const validateUpdateProduct = [
         'metadata',
         'quantity',
       ];
+
+      // Only admin can update status and rejectedReason
+      const user = req.user;
+      if (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SUPER_ADMIN) {
+        allowedFields.push('status', 'rejectedReason');
+      }
 
       const filteredData = {};
       for (const key of allowedFields) {
@@ -1124,6 +1186,11 @@ const validateUpdateProduct = [
         return next(new AppError('Discount price cannot be greater than price', 400));
       }
 
+      // Business validation: rejectedReason required when status is REJECTED
+      if (filteredData.status === PRODUCT_STATUS.REJECTED && !filteredData.rejectedReason) {
+        return next(new AppError('Rejected reason is required when status is REJECTED', 400));
+      }
+
       // Business validation: Check categories exist and no duplicate
       if (filteredData.categories && filteredData.categories.length > 0) {
         // Convert to array if string
@@ -1154,9 +1221,15 @@ const validateUpdateProduct = [
       }
 
       // Business validation: Check user permissions
-      const user = req.user;
       if (user.role === USER_ROLES.SELLER && product.createdBy.toString() !== user._id.toString()) {
         return next(new AppError('You can only update your own products', 403));
+      }
+
+      // Auto-set status to PENDING when seller updates product (except when admin is updating)
+      if (user.role === USER_ROLES.SELLER && Object.keys(filteredData).length > 0) {
+        filteredData.status = PRODUCT_STATUS.PENDING;
+        // Clear rejectedReason when status changes to PENDING
+        filteredData.rejectedReason = null;
       }
 
       // Store validated data and product for controller usage

@@ -14,6 +14,14 @@ paths:
         Get a paginated list of products with filtering and sorting options.
         - Filter by name (accent/case insensitive), price, discountPrice, isActive, isFeatured, categories, createdBy, quantity, createdAt, updatedAt
         - Pagination and sorting supported
+        - **Authentication**: Optional - both authenticated and unauthenticated users can access this endpoint
+        - **Unauthenticated users**: Can only see approved and active products
+        - **Buyer**: Can only see approved and active products
+        - **Seller**: Can see their own products with any status, others' products only if approved and active
+        - **Admin**: Can see all products without restrictions
+      security:
+        - BearerAuth: []
+        - {} # No authentication required
       parameters:
         - name: page
           in: query
@@ -81,6 +89,12 @@ paths:
           schema:
             type: boolean
           description: Filter by featured status
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+          description: Filter by product status
         - name: categories
           in: query
           schema:
@@ -162,23 +176,23 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
                 invalidPage:
-                  value: { status: error, code: 400, message: Page must be a positive integer }
+                  value: { status: error, code: 400, message: "Page must be a positive integer" }
                 invalidLimit:
-                  value: { status: error, code: 400, message: Limit must be between 1 and 100 }
+                  value: { status: error, code: 400, message: "Limit must be between 1 and 100" }
                 invalidSortOrder:
-                  value: { status: error, code: 400, message: Sort order must be either asc or desc }
+                  value: { status: error, code: 400, message: "Sort order must be either asc or desc" }
                 invalidName:
-                  value: { status: error, code: 400, message: Name must be 1-100 characters }
+                  value: { status: error, code: 400, message: "Name must be 1-100 characters" }
                 invalidPrice:
-                  value: { status: error, code: 400, message: priceMin must be a number }
+                  value: { status: error, code: 400, message: "priceMin must be a number" }
                 invalidCategory:
-                  value: { status: error, code: 400, message: Each category must be a valid ObjectId }
+                  value: { status: error, code: 400, message: "Each category must be a valid ObjectId" }
                 invalidCreatedBy:
-                  value: { status: error, code: 400, message: createdBy must be a valid ObjectId }
+                  value: { status: error, code: 400, message: "createdBy must be a valid ObjectId" }
                 invalidDate:
-                  value: { status: error, code: 400, message: createdAtFrom must be a valid date }
+                  value: { status: error, code: 400, message: "createdAtFrom must be a valid date" }
                 minGreaterThanMax:
-                  value: { status: error, code: 400, message: priceMin cannot be greater than priceMax }
+                  value: { status: error, code: 400, message: "priceMin cannot be greater than priceMax" }
         '500':
           description: Internal Server Error
           content:

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 const { v4: uuidv4 } = require('uuid');
+const { PRODUCT_STATUS } = require('../Utils/constant');
 
 /**
  * Product Schema
@@ -42,6 +43,15 @@ const ProductSchema = new mongoose.Schema(
     isFeatured: {
       type: Boolean,
       default: false,
+    },
+    status: {
+      type: String,
+      enum: Object.values(PRODUCT_STATUS),
+      default: PRODUCT_STATUS.PENDING,
+    },
+    rejectedReason: {
+      type: String,
+      trim: true,
     },
     metadata: {
       type: mongoose.Schema.Types.Mixed, // Dynamic attributes like size, color, brand, etc.

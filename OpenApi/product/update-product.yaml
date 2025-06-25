@@ -9,22 +9,23 @@ paths:
     patch:
       tags:
         - Product
-      summary: Update product
+      summary: Update a product
       description: |
-        Update an existing product with validation and permission checks.
-        - Only SUPER_ADMIN, ADMIN, and SELLER can update products
-        - SELLER can only update their own products
-        - All fields are optional for partial updates
-        - Comprehensive validation for data types, business rules, and relationships
-        - Note: totalRating and totalRatingPoints are calculated automatically and cannot be manually updated
+        Update an existing product. 
+        - **Admin/Super Admin**: Can update all fields including status and rejectedReason
+        - **Seller**: Can only update their own products, status will automatically change to PENDING
+        - **Buyer**: Cannot update products
+      security:
+        - BearerAuth: []
       parameters:
         - name: id
           in: path
           required: true
+          description: Product ID
           schema:
             type: string
-            pattern: '^[a-fA-F0-9]{24}$'
-          description: Product ID (MongoDB ObjectId)
+            pattern: '^[0-9a-fA-F]{24}$'
+            example: "507f1f77bcf86cd799439011"
       requestBody:
         required: true
         content:
@@ -36,78 +37,77 @@ paths:
                   type: string
                   minLength: 2
                   maxLength: 100
-                  description: Product name (optional)
+                  description: Product name
+                  example: "Updated Product Name"
                 description:
                   type: string
-                  description: Product description (optional)
+                  description: Product description
+                  example: "Updated product description"
                 price:
                   type: number
                   minimum: 0
-                  description: Product price (optional)
+                  description: Product price
+                  example: 99.99
                 discountPrice:
                   type: number
                   minimum: 0
-                  description: Discount price (optional, must be <= price)
+                  description: Discount price (must be <= price)
+                  example: 79.99
                 categories:
-                  type: array
-                  items:
-                    type: string
-                    pattern: '^[a-fA-F0-9]{24}$'
-                  description: Category IDs array (optional)
+                  oneOf:
+                    - type: array
+                      items:
+                        type: string
+                        pattern: '^[0-9a-fA-F]{24}$'
+                    - type: string
+                      pattern: '^[0-9a-fA-F]{24}$'
+                  description: Category IDs (array or single ID)
+                  example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
                 isActive:
                   type: boolean
-                  description: Product active status (optional)
+                  description: Product active status
+                  example: true
                 isFeatured:
                   type: boolean
-                  description: Product featured status (optional)
+                  description: Product featured status
+                  example: false
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED]
+                  description: Product status (Admin only)
+                  example: "APPROVED"
+                rejectedReason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                  description: Reason for rejection (Admin only, required when status is REJECTED)
+                  example: "Product description violates community guidelines"
                 metadata:
                   type: object
-                  description: Dynamic product metadata (optional)
+                  description: Additional product attributes
+                  example:
+                    size: "L"
+                    color: "Blue"
+                    brand: "Nike"
                 quantity:
                   type: number
                   minimum: 0
-                  description: Product quantity (optional)
+                  description: Available quantity
+                  example: 50
             examples:
-              basicUpdate:
+              admin_update:
+                summary: Admin updating product status
                 value:
-                  name: "Updated Laptop Dell XPS 13"
-                  price: 1299.99
+                  status: "APPROVED"
                   isActive: true
-              fullUpdate:
+              seller_update:
+                summary: Seller updating product details
                 value:
-                  name: "iPhone 15 Pro Max 2024"
-                  description: "Latest Apple flagship phone, 2024 version"
-                  price: 35000000
-                  discountPrice: 32000000
-                  categories: ["65f1a2b3c4d5e6f7g8h9i0j1", "65f1a2b3c4d5e6f7g8h9i0j2"]
-                  isActive: true
-                  isFeatured: true
-                  metadata:
-                    size: ["S", "M", "L"]
-                    color: ["Red", "Blue"]
-                    brand: "Apple"
+                  name: "Updated Product Name"
+                  description: "Updated product description"
+                  price: 99.99
+                  discountPrice: 79.99
                   quantity: 50
-              updateMetadata:
-                value:
-                  metadata:
-                    brand: "Dell"
-                    model: "XPS 13 2024"
-                    color: "Silver"
-                    weight: "1.2kg"
-              updateCategories:
-                value:
-                  categories: ["60f7c0b8e1b1c8a1b8e1b1c8", "60f7c0b8e1b1c8a1b8e1b1c9"]
-              updatePriceAndDiscount:
-                value:
-                  price: 1199.99
-                  discountPrice: 1099.99
-              updateStatus:
-                value:
-                  isActive: false
-                  isFeatured: true
-              updateQuantity:
-                value:
-                  quantity: 200
       responses:
         '200':
           description: Product updated successfully
@@ -116,70 +116,98 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    example: success
-                  code:
-                    type: integer
-                    example: 200
-                  message:
-                    type: string
-                    example: Product updated successfully
+                  success:
+                    type: boolean
+                    example: true
                   data:
                     $ref: '#/components/schemas/Product'
+                  message:
+                    type: string
+                    example: "Product updated successfully"
+              example:
+                success: true
+                data:
+                  _id: "507f1f77bcf86cd799439011"
+                  name: "Updated Product Name"
+                  description: "Updated product description"
+                  price: 99.99
+                  discountPrice: 79.99
+                  status: "PENDING"
+                  isActive: true
+                  isFeatured: false
+                  quantity: 50
+                  createdBy: "507f1f77bcf86cd799439013"
+                  createdAt: "2024-01-01T00:00:00.000Z"
+                  updatedAt: "2024-01-01T00:00:00.000Z"
+                message: "Product updated successfully"
         '400':
-          description: Bad Request - Validation errors
+          description: Bad request - validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Error'
               examples:
-                invalidId:
-                  value: { status: error, code: 400, message: "Invalid product ID format" }
-                noFields:
-                  value: { status: error, code: 400, message: "No fields provided for update" }
-                invalidPrice:
-                  value: { status: error, code: 400, message: "Price cannot be negative" }
-                invalidDiscount:
-                  value: { status: error, code: 400, message: "Discount price cannot be greater than price" }
-                invalidCategory:
-                  value: { status: error, code: 400, message: "Each category must be a valid ObjectId" }
-                categoryNotFound:
-                  value: { status: error, code: 400, message: "One or more categories do not exist" }
-                duplicateCategory:
-                  value: { status: error, code: 400, message: "Duplicate category in categories array" }
+                validation_error:
+                  summary: Validation error
+                  value:
+                    success: false
+                    error: "Product name must be 2-100 characters, Price cannot be negative"
+                    statusCode: 400
+                no_fields:
+                  summary: No fields provided
+                  value:
+                    success: false
+                    error: "No fields provided for update"
+                    statusCode: 400
+                rejected_no_reason:
+                  summary: Rejected status without reason
+                  value:
+                    success: false
+                    error: "Rejected reason is required when status is REJECTED"
+                    statusCode: 400
         '401':
-          description: Unauthorized - Invalid or missing token
+          description: Unauthorized - invalid or missing token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: "Unauthorized access"
+                statusCode: 401
         '403':
-          description: Forbidden - Insufficient permissions
+          description: Forbidden - insufficient permissions
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/Error'
               examples:
-                sellerOwnProduct:
-                  value: { status: error, code: 403, message: "You can only update your own products" }
+                not_owner:
+                  summary: Seller trying to update another seller's product
+                  value:
+                    success: false
+                    error: "You can only update your own products"
+                    statusCode: 403
         '404':
           description: Product not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                productNotFound:
-                  value: { status: error, code: 404, message: "Product not found" }
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: "Product not found"
+                statusCode: 404
         '500':
-          description: Internal Server Error
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - BearerAuth: []
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: "Internal server error"
+                statusCode: 500
 
 components:
   schemas:
@@ -188,76 +216,77 @@ components:
       properties:
         _id:
           type: string
-          example: '60f7c0b8e1b1c8a1b8e1b1c8'
+          example: "507f1f77bcf86cd799439011"
         name:
           type: string
-          example: 'Laptop Dell XPS 13'
-        slug:
-          type: string
-          example: 'laptop-dell-xps-13-a1b2c3d4'
+          example: "Product Name"
         description:
           type: string
-          example: 'High-performance laptop with premium features'
+          example: "Product description"
         price:
           type: number
-          example: 1299.99
+          example: 99.99
         discountPrice:
           type: number
-          example: 1199.99
-        images:
-          type: array
-          items:
-            type: string
-          example: ['https://example.com/image1.jpg', 'https://example.com/image2.jpg']
-        categories:
-          type: array
-          items:
-            type: string
-          example: ['60f7c0b8e1b1c8a1b8e1b1c8', '60f7c0b8e1b1c8a1b8e1b1c9']
+          example: 79.99
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          example: "PENDING"
+        rejectedReason:
+          type: string
+          nullable: true
+          example: "Product description violates community guidelines"
         isActive:
           type: boolean
           example: true
         isFeatured:
           type: boolean
           example: false
-        metadata:
-          type: object
-          example:
-            brand: 'Dell'
-            model: 'XPS 13'
-            color: 'Silver'
-            weight: '1.2kg'
-        totalRating:
-          type: number
-          example: 4.5
-          description: Calculated automatically from reviews, cannot be manually updated
-        totalRatingPoints:
-          type: number
-          example: 45
-          description: Calculated automatically from reviews, cannot be manually updated
         quantity:
           type: number
-          example: 25
+          example: 50
         createdBy:
           type: string
-          example: '60f7c0b8e1b1c8a1b8e1b1c8'
+          example: "507f1f77bcf86cd799439013"
         createdAt:
           type: string
           format: date-time
-          example: '2023-07-20T10:30:00.000Z'
+          example: "2024-01-01T00:00:00.000Z"
         updatedAt:
           type: string
           format: date-time
-          example: '2023-07-20T15:45:00.000Z'
-    ErrorResponse:
+          example: "2024-01-01T00:00:00.000Z"
+      required:
+        - _id
+        - name
+        - description
+        - price
+        - status
+        - isActive
+        - isFeatured
+        - quantity
+        - createdBy
+        - createdAt
+        - updatedAt
+    Error:
       type: object
       properties:
-        status:
+        success:
+          type: boolean
+          example: false
+        error:
           type: string
-          example: error
-        code:
+          example: "Error message"
+        statusCode:
           type: integer
           example: 400
-        message:
-          type: string
-          example: Validation error message 
+      required:
+        - success
+        - error
+        - statusCode
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
