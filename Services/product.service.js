@@ -33,6 +33,7 @@ class ProductService extends BaseService {
       filter.isActive = query.isActive === 'true' || query.isActive === true;
     if (query.isFeatured !== undefined)
       filter.isFeatured = query.isFeatured === 'true' || query.isFeatured === true;
+    if (query.status) filter.status = query.status;
     if (query.categories) filter.categories = { $in: query.categories };
     if (query.createdBy) filter.createdBy = query.createdBy;
     if (query.quantityMin !== undefined || query.quantityMax !== undefined) {

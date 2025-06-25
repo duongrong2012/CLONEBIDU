@@ -98,7 +98,52 @@ const verifyRefreshToken = (allowedRoles = []) => {
   };
 };
 
+/**
+ * Optional authentication middleware
+ * Sets req.user if token is valid, otherwise req.user will be null
+ * Allows both authenticated and unauthenticated users to access the endpoint
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    let decoded;
+    try {
+      decoded = verifyJwtToken(token, TOKEN_TYPES.ACCESS);
+    } catch {
+      req.user = null;
+      return next();
+    }
+
+    // Check if user exists
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      req.user = null;
+      return next();
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      req.user = null;
+      return next();
+    }
+
+    req.user = user.toPublicJSON();
+    next();
+  } catch {
+    // If any error occurs, just set user to null and continue
+    req.user = null;
+    next();
+  }
+};
+
 module.exports = {
   verifyRefreshToken,
   verifyToken,
+  optionalAuth,
 };

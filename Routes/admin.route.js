@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../Middlewares/auth.middleware');
+const { verifyToken, optionalAuth } = require('../Middlewares/auth.middleware');
 const {
   validateGetUsers,
   validateUpdateUser,
@@ -41,7 +41,7 @@ router.post(
   createProduct
 );
 
-router.get('/products', validateGetProducts, getProducts);
+router.get('/products', optionalAuth, validateGetProducts, getProducts);
 
 router.patch(
   '/products/:id',

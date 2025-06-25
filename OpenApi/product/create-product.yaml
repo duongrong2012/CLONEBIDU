@@ -60,6 +60,11 @@ paths:
                   type: boolean
                   description: Is product featured
                   example: false
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED]
+                  description: Product status (Admin only, default is PENDING)
+                  example: "PENDING"
                 metadata:
                   type: object
                   description: Dynamic attributes (size, color, brand, etc.)
@@ -154,6 +159,10 @@ components:
         isFeatured:
           type: boolean
           example: false
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          example: "PENDING"
         metadata:
           type: object
           example:

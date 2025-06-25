@@ -32,7 +32,9 @@ JWT_REFRESH_SECRET=your-jwt-refresh-secret
 npm run dev
 ```
 
-## Running the Seeder Script to Create a Super Admin Account
+## Running the Seeder Scripts
+
+### Create Super Admin Account
 
 To create a super admin account, follow these steps:
 1. Run the following command in your terminal:
@@ -43,6 +45,21 @@ To create a super admin account, follow these steps:
 
    This command executes the seeder script located at `seeders/create-super-admin.js`, which creates a super admin account in your database.
 
+### Update Product Status (After Schema Changes)
+
+If you've recently added the `status` field to the Product model and need to update existing products, run:
+
+```bash
+npm run seed:update-product-status
+```
+
+This command executes the seeder script located at `seeders/update-product-status.js`, which:
+- Finds all products that don't have a `status` field
+- Updates them to have `status = PENDING`
+- Adds `rejectedReason = null` for consistency
+- Provides a summary of all product statuses after the update
+
+**Note**: This seeder is safe to run multiple times - it will only update products that need the status field added.
 
 ## API Endpoints
 
