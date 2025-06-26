@@ -69,7 +69,7 @@ exports.rateProduct = catchAsync(async (req, res) => {
   // Only use validated data from middleware
   const ratingData = req.validatedData;
 
-  const result = await ProductService.rateProduct(ratingData);
+  const result = await productService.rateProduct(ratingData);
 
   const message = result.isNewRating
     ? MESSAGES.PRODUCT.RATED_SUCCESS
