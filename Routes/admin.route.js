@@ -9,10 +9,16 @@ const {
   validateCreateProduct,
   validateGetProducts,
   validateUpdateProduct,
+  validateGetProductById,
 } = require('../Middlewares/validation.middleware');
 const { getUsers, updateUser } = require('../Controllers/user.controller');
 const { createCategory, updateCategory } = require('../Controllers/category.controller');
-const { createProduct, getProducts, updateProduct } = require('../Controllers/product.controller');
+const {
+  createProduct,
+  getProducts,
+  updateProduct,
+  getProductById,
+} = require('../Controllers/product.controller');
 const { USER_ROLES } = require('../Utils/constant');
 
 router.get('/users', verifyToken(USER_ROLES.SUPER_ADMIN), validateGetUsers(), getUsers);
@@ -42,6 +48,8 @@ router.post(
 );
 
 router.get('/products', optionalAuth, validateGetProducts, getProducts);
+
+router.get('/products/:productId', optionalAuth, validateGetProductById, getProductById);
 
 router.patch(
   '/products/:id',

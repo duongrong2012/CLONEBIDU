@@ -6,7 +6,7 @@ const { HTTP_STATUS } = require('../Utils/constant');
 const response = require('../Utils/response.utils');
 const User = require('../Models/user.model');
 const BecomeSellerRequest = require('../Models/becomeSellerRequest.model');
-const { SELLER_REQUEST_STATUS, USER_ROLES } = require('../Utils/constant');
+const { SELLER_REQUEST_STATUS, USER_ROLES, PRODUCT_STATUS } = require('../Utils/constant');
 const mongoose = require('mongoose');
 const Category = require('../Models/category.model');
 const { CATEGORY_LEVEL } = require('../Utils/constant');
@@ -15,7 +15,6 @@ const { v4: uuidv4 } = require('uuid');
 const Media = require('../Models/media.model');
 const { IMAGE_OWNER_TYPE } = require('../Utils/constant');
 const Product = require('../Models/product.model');
-const { PRODUCT_STATUS } = require('../Utils/constant');
 
 /**
  * Middleware to validate user registration fields
@@ -1243,6 +1242,73 @@ const validateUpdateProduct = [
   },
 ];
 
+/**
+ * Middleware to validate get product by ID request and apply access control
+ * Validates product ID format, checks product existence, and applies access control
+ * Passes validated data to req.validatedParams
+ */
+const validateGetProductById = [
+  param('productId').isMongoId().withMessage('Invalid product ID format'),
+
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(err => err.msg);
+        return next(new AppError(errorMessages.join(', '), 400));
+      }
+
+      const productId = req.params.productId;
+      const user = req.user;
+
+      // Check if product exists first
+      const product = await Product.findById(productId);
+      if (!product) {
+        return next(new AppError('Product not found', 404));
+      }
+
+      // Apply access control based on user role
+      let hasAccess = true;
+      let accessDeniedReason = '';
+
+      if (!user) {
+        // Guest: only approved and active products
+        if (product.status !== PRODUCT_STATUS.APPROVED || !product.isActive) {
+          hasAccess = false;
+          accessDeniedReason = 'Product not available for public viewing';
+        }
+      } else if (user.role === USER_ROLES.BUYER) {
+        // Buyer: only approved and active products
+        if (product.status !== PRODUCT_STATUS.APPROVED || !product.isActive) {
+          hasAccess = false;
+          accessDeniedReason = 'Product not available for viewing';
+        }
+      } else if (user.role === USER_ROLES.SELLER) {
+        // Seller: can see their own products with any status, but only approved and active products of others
+        const isOwnProduct = product.createdBy.toString() === user._id.toString();
+        if (!isOwnProduct && (product.status !== PRODUCT_STATUS.APPROVED || !product.isActive)) {
+          hasAccess = false;
+          accessDeniedReason = 'Product not available for viewing';
+        }
+      }
+      // Admin: can see all products (no restrictions)
+
+      if (!hasAccess) {
+        return next(new AppError(accessDeniedReason, 403));
+      }
+
+      // Store validated params for controller usage
+      req.validatedParams = {
+        productId: productId,
+      };
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
@@ -1261,4 +1327,5 @@ module.exports = {
   validateCreateProduct,
   validateGetProducts,
   validateUpdateProduct,
+  validateGetProductById,
 };

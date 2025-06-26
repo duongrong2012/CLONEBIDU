@@ -1,5 +1,6 @@
 const BaseService = require('./base.service');
 const Product = require('../Models/product.model');
+const AppError = require('../Utils/error.utils');
 
 class ProductService extends BaseService {
   constructor() {
@@ -75,6 +76,23 @@ class ProductService extends BaseService {
       new: true,
       runValidators: true,
     });
+    return product;
+  }
+
+  /**
+   * Get a product by ID
+   * @param {string} productId - Product ID
+   * @returns {Promise<Object>} Product details
+   */
+  async getProductById(productId) {
+    const product = await Product.findById(productId)
+      .populate('categories', 'name slug')
+      .populate('createdBy', 'firstName lastName email');
+
+    if (!product) {
+      throw new AppError('Product not found', 404);
+    }
+
     return product;
   }
 }

@@ -41,3 +41,19 @@ exports.updateProduct = async (req, res) => {
   const product = await productService.updateProduct(id, updateData);
   return res.json(response.success(product, 'Product updated successfully'));
 };
+
+/**
+ * Get product detail by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.getProductById = async (req, res, next) => {
+  try {
+    const { productId } = req.validatedParams;
+    const product = await productService.getProductById(productId);
+    res.json(response.success('Product retrieved successfully', product));
+  } catch (error) {
+    next(error);
+  }
+};
