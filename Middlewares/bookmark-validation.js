@@ -84,6 +84,57 @@ const validateAddBookmark = [
   },
 ];
 
+/**
+ * Middleware validate remove bookmark
+ * - Validate productId
+ * - Check product exists
+ * - Check product is in user's bookmarks
+ * - Gán req.validatedBookmarkData
+ */
+const validateRemoveBookmark = [
+  param('productId')
+    .notEmpty()
+    .withMessage('Product ID is required')
+    .custom(value => {
+      if (!mongoose.Types.ObjectId.isValid(value)) {
+        throw new Error('Invalid product ID format');
+      }
+      return true;
+    }),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new AppError('Validation failed', HTTP_STATUS.BAD_REQUEST, errors.array()));
+    }
+    next();
+  },
+  async (req, res, next) => {
+    try {
+      const { productId } = req.params;
+      const { user } = req;
+      // Check product exists
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new AppError(MESSAGES.BOOKMARK.PRODUCT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+      }
+      // Check product is in user's bookmarks
+      const userWithBookmarks = await User.findById(user._id);
+      if (!userWithBookmarks.bookmarks.includes(productId)) {
+        throw new AppError(MESSAGES.BOOKMARK.NOT_BOOKMARKED, HTTP_STATUS.BAD_REQUEST);
+      }
+      req.validatedBookmarkData = {
+        productId,
+        userId: user._id,
+        product,
+      };
+      next();
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
 module.exports = {
   validateAddBookmark,
+  validateRemoveBookmark,
 };

@@ -25,6 +25,23 @@ class BookmarkController {
       })
     );
   });
+
+  /**
+   * Remove a product from user's bookmarks
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} _next - Express next middleware function
+   */
+  removeBookmark = catchAsync(async (req, res, _next) => {
+    const { productId, userId } = req.validatedBookmarkData;
+    const updatedUser = await bookmarkService.removeBookmark(userId, productId);
+    res.status(200).json(
+      response.success(MESSAGES.BOOKMARK.REMOVED_SUCCESS, {
+        bookmarks: updatedUser.bookmarks,
+        totalBookmarks: updatedUser.bookmarks.length,
+      })
+    );
+  });
 }
 
 module.exports = new BookmarkController();

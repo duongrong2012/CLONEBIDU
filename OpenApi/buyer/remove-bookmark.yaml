@@ -1,0 +1,168 @@
+openapi: 3.0.0
+info:
+  title: Remove Bookmark API
+  description: API to remove a product from user's bookmarks (available for all authenticated users)
+  version: 1.0.0
+
+paths:
+  /buyer/products/{productId}/bookmark:
+    delete:
+      summary: Remove a product from bookmarks
+      description: Remove a specific product from the current user's bookmarks list. Available for all authenticated users (BUYER, SELLER, ADMIN, SUPER_ADMIN).
+      tags:
+        - Bookmark
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: ID of the product to remove from bookmarks
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+            example: "65f1a2b3c4d5e6f7g8h9i0j1"
+      responses:
+        '200':
+          description: Product successfully removed from bookmarks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookmarkResponse'
+        '400':
+          description: Bad request - validation error or business rule violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  summary: Validation Error
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Validation failed"
+                    errors:
+                      - field: "productId"
+                        message: "Invalid product ID format"
+                not_bookmarked:
+                  summary: Not Bookmarked
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Product is not in your bookmarks"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                token_required:
+                  summary: Token Required
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Access token is required"
+                invalid_token:
+                  summary: Invalid Token
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Invalid token"
+                token_expired:
+                  summary: Token Expired
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Token has expired"
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: "error"
+                code: 404
+                message: "Product not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: "error"
+                code: 500
+                message: "Internal Server Error"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    BookmarkResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["success"]
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Product removed from bookmarks successfully"
+        data:
+          type: object
+          properties:
+            bookmarks:
+              type: array
+              items:
+                type: string
+                pattern: "^[a-fA-F0-9]{24}$"
+              description: Array of product IDs in user's bookmarks
+              example: ["65f1a2b3c4d5e6f7g8h9i0j2"]
+            totalBookmarks:
+              type: integer
+              minimum: 0
+              description: Total number of bookmarks
+              example: 1
+      required:
+        - status
+        - code
+        - message
+        - data
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["error"]
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Error message"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field name that caused the error
+              message:
+                type: string
+                description: Error message for the field
+          description: Array of validation errors (only present for validation errors)
+      required:
+        - status
+        - code
+        - message
