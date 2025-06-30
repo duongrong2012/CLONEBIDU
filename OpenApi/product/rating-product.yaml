@@ -1,0 +1,198 @@
+paths:
+  /buyer/products/{productId}/rate:
+    post:
+      tags:
+        - Product Rating
+      summary: Rate a product
+      description: |
+        Rate a product with a value from 1-5 and optional comment.
+        Users can only rate once per product. If they rate again, it will update their previous rating.
+        All input data is strictly validated and filtered by middleware before reaching the controller.
+        - Required fields: rating (1-5)
+        - Optional fields: comment (max 500 characters)
+        - Product must exist and be active
+        - User must be authenticated
+        - Data consistency is ensured using database transactions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Product ID to rate
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rating
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  description: Rating value (1-5 stars)
+                  example: 5
+                comment:
+                  type: string
+                  maxLength: 500
+                  description: Optional comment/review
+                  example: "Great product, highly recommended!"
+      responses:
+        '200':
+          description: Product rated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Product rated successfully"
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: '#/components/schemas/Product'
+                      rating:
+                        $ref: '#/components/schemas/ProductRating'
+                      isNewRating:
+                        type: boolean
+                        description: Whether this is a new rating or an update
+                        example: true
+        '400':
+          description: Bad request (validation error)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Rating must be an integer between 1 and 5"
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "Access token is required"
+        '403':
+          description: Forbidden (inactive product)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Cannot rate inactive product"
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Product not found"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ProductRating:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "65f1a2b3c4d5e6f7g8h9i0j2"
+        product:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+        user:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+          example: "65f1a2b3c4d5e6f7g8h9i0j3"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          example: "Great product, highly recommended!"
+        ratedUsers:
+          type: array
+          description: Array of all users who have rated this product
+          items:
+            type: object
+            properties:
+              user:
+                type: string
+                pattern: "^[a-fA-F0-9]{24}$"
+                example: "65f1a2b3c4d5e6f7g8h9i0j3"
+              rating:
+                type: integer
+                minimum: 1
+                maximum: 5
+                example: 5
+              comment:
+                type: string
+                example: "Great product, highly recommended!"
+              ratedAt:
+                type: string
+                format: date-time
+                example: "2024-06-01T12:00:00.000Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T12:00:00.000Z"

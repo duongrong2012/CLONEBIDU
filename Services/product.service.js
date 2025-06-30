@@ -1,6 +1,8 @@
 const BaseService = require('./base.service');
 const Product = require('../Models/product.model');
 const AppError = require('../Utils/error.utils');
+const ProductRating = require('../Models/product-rating.model');
+const { MESSAGES } = require('../Utils/constant');
 
 class ProductService extends BaseService {
   constructor() {
@@ -94,6 +96,110 @@ class ProductService extends BaseService {
     }
 
     return product;
+  }
+
+  /**
+   * Rate a product by user
+   * @param {Object} ratingData - Validated rating data from middleware
+   * @param {string} ratingData.productId - Product ID
+   * @param {string} ratingData.userId - User ID
+   * @param {number} ratingData.rating - Rating value (1-5)
+   * @param {string} ratingData.comment - Optional comment
+   * @returns {Promise<Object>} Updated product with new rating
+   */
+  async rateProduct(ratingData) {
+    const { productId, userId, rating, comment } = ratingData;
+
+    // Use transaction to ensure data consistency
+    const session = await Product.startSession();
+    session.startTransaction();
+
+    try {
+      // Check if user has already rated this product
+      let existingRating = await ProductRating.findOne({
+        product: productId,
+        user: userId,
+      }).session(session);
+
+      let isNewRating = true;
+
+      if (existingRating) {
+        isNewRating = false;
+
+        // Update existing rating
+        existingRating.rating = rating;
+        existingRating.comment = comment;
+
+        // Update the user's rating in ratedUsers array
+        const userIndex = existingRating.ratedUsers.findIndex(ru => ru.user.toString() === userId);
+
+        if (userIndex !== -1) {
+          existingRating.ratedUsers[userIndex].rating = rating;
+          existingRating.ratedUsers[userIndex].comment = comment;
+          existingRating.ratedUsers[userIndex].ratedAt = new Date();
+        }
+
+        await existingRating.save({ session });
+      } else {
+        // Create new rating
+        existingRating = await ProductRating.create(
+          [
+            {
+              product: productId,
+              user: userId,
+              rating,
+              comment,
+              ratedUsers: [
+                {
+                  user: userId,
+                  rating,
+                  comment,
+                  ratedAt: new Date(),
+                },
+              ],
+            },
+          ],
+          { session }
+        );
+
+        existingRating = existingRating[0];
+      }
+
+      // Calculate new average rating for product
+      const ratings = await ProductRating.find({ product: productId }).session(session);
+      const totalRating = ratings.length;
+      const totalRatingPoints = ratings.reduce((sum, r) => sum + r.rating, 0);
+
+      // Update product rating fields
+      const updatedProduct = await Product.findByIdAndUpdate(
+        productId,
+        {
+          totalRating,
+          totalRatingPoints,
+        },
+        { new: true, session }
+      );
+
+      if (!updatedProduct) {
+        throw new AppError(MESSAGES.PRODUCT.NOT_FOUND, 404);
+      }
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      return {
+        product: updatedProduct,
+        rating: existingRating,
+        isNewRating,
+      };
+    } catch (error) {
+      // Rollback transaction on error
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      // End session
+      session.endSession();
+    }
   }
 }
 
