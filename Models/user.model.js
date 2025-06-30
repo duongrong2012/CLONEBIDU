@@ -94,6 +94,13 @@ const userSchema = new mongoose.Schema(
       type: shopSchema,
       default: undefined,
     },
+    bookmarks: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        index: true,
+      },
+    ],
   },
   {
     timestamps: true,

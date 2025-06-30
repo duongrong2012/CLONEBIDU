@@ -98,6 +98,14 @@ const MESSAGES = {
     RATING_UPDATED: 'Product rating updated successfully',
     INACTIVE_PRODUCT: 'Cannot rate inactive product',
   },
+  BOOKMARK: {
+    ADDED_SUCCESS: 'Product added to bookmarks successfully',
+    ALREADY_BOOKMARKED: 'Product is already bookmarked',
+    OWN_PRODUCT: 'Cannot bookmark your own product',
+    PRODUCT_NOT_FOUND: 'Product not found',
+    PRODUCT_INACTIVE: 'Cannot bookmark inactive product',
+    PRODUCT_UNAPPROVED: 'Cannot bookmark unapproved product',
+  },
   SEEDER: {
     SUPER_ADMIN_EXISTS: 'Super admin already exists',
     SUPER_ADMIN_CREATED: 'Super admin created successfully',
@@ -138,6 +146,22 @@ const PRODUCT_STATUS = {
 
 const ERROR_CODES = {
   TOKEN_EXPIRED: 40101,
+};
+
+/**
+ * HTTP Status Codes
+ */
+const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  NO_CONTENT: 204,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  INTERNAL_SERVER_ERROR: 500,
 };
 
 /**
@@ -190,6 +214,7 @@ const CATEGORY_LEVEL = {
 
 module.exports = {
   ERROR_CODES,
+  HTTP_STATUS,
   COOKIE_OPTIONS,
   TOKEN_COOKIE_CONFIG,
   JWT_CONFIG,

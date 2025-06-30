@@ -1,0 +1,186 @@
+openapi: 3.0.0
+info:
+  title: Add Bookmark API
+  description: API to add a product to user's bookmarks (available for all authenticated users)
+  version: 1.0.0
+
+paths:
+  /buyer/products/{productId}/bookmark:
+    post:
+      summary: Add a product to bookmarks
+      description: Add a specific product to the current user's bookmarks list. Available for all authenticated users (BUYER, SELLER, ADMIN, SUPER_ADMIN). Sellers cannot bookmark their own products.
+      tags:
+        - Bookmark
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: ID of the product to bookmark
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+            example: "65f1a2b3c4d5e6f7g8h9i0j1"
+      responses:
+        '201':
+          description: Product successfully added to bookmarks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookmarkResponse'
+        '400':
+          description: Bad request - validation error or business rule violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  summary: Validation Error
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Validation failed"
+                    errors:
+                      - field: "productId"
+                        message: "Invalid product ID format"
+                already_bookmarked:
+                  summary: Already Bookmarked
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Product is already bookmarked"
+                product_inactive:
+                  summary: Product Inactive
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Cannot bookmark inactive product"
+                product_unapproved:
+                  summary: Product Unapproved
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Cannot bookmark unapproved product"
+                own_product:
+                  summary: Own Product
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Cannot bookmark your own product"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                token_required:
+                  summary: Token Required
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Access token is required"
+                invalid_token:
+                  summary: Invalid Token
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Invalid token"
+                token_expired:
+                  summary: Token Expired
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Token has expired"
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: "error"
+                code: 404
+                message: "Product not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: "error"
+                code: 500
+                message: "Internal Server Error"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    BookmarkResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["success"]
+          example: "success"
+        code:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: "Product added to bookmarks successfully"
+        data:
+          type: object
+          properties:
+            bookmarks:
+              type: array
+              items:
+                type: string
+                pattern: "^[a-fA-F0-9]{24}$"
+              description: Array of product IDs in user's bookmarks
+              example: ["65f1a2b3c4d5e6f7g8h9i0j1", "65f1a2b3c4d5e6f7g8h9i0j2"]
+            totalBookmarks:
+              type: integer
+              minimum: 0
+              description: Total number of bookmarks
+              example: 2
+      required:
+        - status
+        - code
+        - message
+        - data
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["error"]
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Error message"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field name that caused the error
+              message:
+                type: string
+                description: Error message for the field
+          description: Array of validation errors (only present for validation errors)
+      required:
+        - status
+        - code
+        - message 
