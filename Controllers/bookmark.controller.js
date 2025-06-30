@@ -42,6 +42,21 @@ class BookmarkController {
       })
     );
   });
+
+  /**
+   * Get paginated bookmarks for a user
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} _next - Express next middleware function
+   */
+  getBookmarks = catchAsync(async (req, res, _next) => {
+    const user = req.validatedUser;
+    const result = await bookmarkService.getBookmarks(user, req.validatedQuery);
+
+    res
+      .status(200)
+      .json(response.success(MESSAGES.BOOKMARK.FETCH_SUCCESS, response.groupPagination(result)));
+  });
 }
 
 module.exports = new BookmarkController();

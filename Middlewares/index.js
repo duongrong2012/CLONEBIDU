@@ -1,7 +1,11 @@
 const errorHandler = require('./error.middleware');
 const { validateUserFields, validateBuyerLogin } = require('./validation.middleware');
 const { verifyRefreshToken } = require('./auth.middleware');
-const { validateAddBookmark, validateRemoveBookmark } = require('./bookmark-validation');
+const {
+  validateAddBookmark,
+  validateRemoveBookmark,
+  validateGetBookmarks,
+} = require('./bookmark-validation');
 
 module.exports = {
   errorHandler,
@@ -10,4 +14,5 @@ module.exports = {
   verifyRefreshToken,
   validateAddBookmark,
   validateRemoveBookmark,
+  validateGetBookmarks,
 };

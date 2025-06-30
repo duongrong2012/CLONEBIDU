@@ -1,4 +1,4 @@
-const { param, validationResult } = require('express-validator');
+const { param, validationResult, query } = require('express-validator');
 const mongoose = require('mongoose');
 const Product = require('../Models/product.model');
 const User = require('../Models/user.model');
@@ -134,7 +134,50 @@ const validateRemoveBookmark = [
   },
 ];
 
+/**
+ * Middleware to validate and filter get bookmarks request (pagination, sort)
+ * - Validate page, limit, sortBy, sortOrder
+ * - Only allow valid fields, assign to req.validatedQuery
+ * - Check if user exists, throw AppError if not
+ */
+const validateGetBookmarks = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100'),
+  query('sortBy').optional().isString().withMessage('SortBy must be a string'),
+  query('sortOrder')
+    .optional()
+    .isIn(['asc', 'desc'])
+    .withMessage('SortOrder must be either asc or desc'),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(err => err.msg);
+      return next(new AppError(errorMessages.join(', '), 400));
+    }
+    // Only allow valid fields
+    const allowedFields = ['page', 'limit', 'sortBy', 'sortOrder'];
+    const filteredQuery = {};
+    allowedFields.forEach(field => {
+      if (req.query[field] !== undefined) {
+        filteredQuery[field] = req.query[field];
+      }
+    });
+    // Check if user exists
+    const user = await User.findById(req.user._id).lean();
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+    req.validatedQuery = filteredQuery;
+    req.validatedUser = user;
+    next();
+  },
+];
+
 module.exports = {
   validateAddBookmark,
   validateRemoveBookmark,
+  validateGetBookmarks,
 };

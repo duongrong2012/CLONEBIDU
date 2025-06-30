@@ -1,0 +1,401 @@
+openapi: 3.0.0
+info:
+  title: Get Bookmarks API
+  description: API to get paginated list of user's bookmarked products
+  version: 1.0.0
+
+paths:
+  /buyer/bookmarks:
+    get:
+      summary: Get user's bookmarked products
+      description: Retrieve a paginated list of products that the current user has bookmarked. Available for all authenticated users (BUYER, SELLER, ADMIN, SUPER_ADMIN).
+      tags:
+        - Bookmark
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: "Page number for pagination (default: 1)"
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          required: false
+          description: "Number of items per page (default: 10, max: 100)"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+            example: 10
+        - name: sortBy
+          in: query
+          required: false
+          description: "Field to sort by (default: createdAt)"
+          schema:
+            type: string
+            enum:
+              - name
+              - price
+              - createdAt
+              - updatedAt
+              - totalRating
+            default: createdAt
+            example: createdAt
+        - name: sortOrder
+          in: query
+          required: false
+          description: "Sort order (default: desc)"
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+            example: desc
+      responses:
+        '200':
+          description: Successfully retrieved bookmarked products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookmarksListResponse'
+              examples:
+                success_with_bookmarks:
+                  summary: Success with bookmarks
+                  value:
+                    status: "success"
+                    code: 200
+                    message: "Bookmarks retrieved successfully"
+                    data:
+                      data:
+                        - _id: "65f1a2b3c4d5e6f7g8h9i0j1"
+                          name: "iPhone 15 Pro"
+                          description: "Latest iPhone with advanced features"
+                          price: 999
+                          discountPrice: 899
+                          images: ["https://example.com/iphone1.jpg", "https://example.com/iphone2.jpg"]
+                          categories: ["65f1a2b3c4d5e6f7g8h9i0j2"]
+                          isActive: true
+                          isFeatured: false
+                          status: "APPROVED"
+                          totalRating: 4.5
+                          totalRatingPoints: 45
+                          quantity: 10
+                          createdBy: "65f1a2b3c4d5e6f7g8h9i0j3"
+                          slug: "iphone-15-pro-a1b2c3d4"
+                          metadata:
+                            brand: "Apple"
+                            color: "Titanium"
+                            storage: "256GB"
+                          createdAt: "2024-01-15T10:30:00.000Z"
+                          updatedAt: "2024-01-15T10:30:00.000Z"
+                        - _id: "65f1a2b3c4d5e6f7g8h9i0j4"
+                          name: "MacBook Pro M3"
+                          description: "Powerful laptop for professionals"
+                          price: 1999
+                          discountPrice: null
+                          images: ["https://example.com/macbook1.jpg"]
+                          categories: ["65f1a2b3c4d5e6f7g8h9i0j5"]
+                          isActive: true
+                          isFeatured: true
+                          status: "APPROVED"
+                          totalRating: 4.8
+                          totalRatingPoints: 48
+                          quantity: 5
+                          createdBy: "65f1a2b3c4d5e6f7g8h9i0j6"
+                          slug: "macbook-pro-m3-e5f6g7h8"
+                          metadata:
+                            brand: "Apple"
+                            color: "Space Gray"
+                            storage: "512GB"
+                            processor: "M3 Pro"
+                          createdAt: "2024-01-14T15:45:00.000Z"
+                          updatedAt: "2024-01-14T15:45:00.000Z"
+                      pagination:
+                        page: 1
+                        limit: 10
+                        total: 2
+                        totalPages: 1
+                empty_bookmarks:
+                  summary: Empty bookmarks
+                  value:
+                    status: "success"
+                    code: 200
+                    message: "Bookmarks retrieved successfully"
+                    data:
+                      data: []
+                      pagination:
+                        page: 1
+                        limit: 10
+                        total: 0
+                        totalPages: 0
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_page:
+                  summary: Invalid Page Number
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Page number must be greater than 0"
+                invalid_limit:
+                  summary: Invalid Limit
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Limit must be between 1 and 100"
+                invalid_sort_by:
+                  summary: Invalid Sort Field
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Invalid sort field"
+                invalid_sort_order:
+                  summary: Invalid Sort Order
+                  value:
+                    status: "error"
+                    code: 400
+                    message: "Sort order must be 'asc' or 'desc'"
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                token_required:
+                  summary: Token Required
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Access token is required"
+                invalid_token:
+                  summary: Invalid Token
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Invalid token"
+                token_expired:
+                  summary: Token Expired
+                  value:
+                    status: "error"
+                    code: 401
+                    message: "Token has expired"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: "error"
+                code: 500
+                message: "Internal Server Error"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    BookmarksListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+          example: "success"
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Bookmarks retrieved successfully"
+        data:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+              description: Array of bookmarked products
+            pagination:
+              $ref: '#/components/schemas/PaginationInfo'
+      required:
+        - status
+        - code
+        - message
+        - data
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+        name:
+          type: string
+          example: "iPhone 15 Pro"
+        description:
+          type: string
+          example: "Latest iPhone with advanced features"
+        price:
+          type: number
+          minimum: 0
+          example: 999
+        discountPrice:
+          type: number
+          nullable: true
+          minimum: 0
+          example: 899
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["https://example.com/iphone1.jpg", "https://example.com/iphone2.jpg"]
+        categories:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+          example: ["65f1a2b3c4d5e6f7g8h9i0j2"]
+        isActive:
+          type: boolean
+          example: true
+        isFeatured:
+          type: boolean
+          example: false
+        status:
+          type: string
+          enum:
+            - "PENDING"
+            - "APPROVED"
+            - "REJECTED"
+          example: "APPROVED"
+        rejectedReason:
+          type: string
+          nullable: true
+          example: null
+        totalRating:
+          type: number
+          minimum: 0
+          maximum: 5
+          example: 4.5
+        totalRatingPoints:
+          type: number
+          minimum: 0
+          example: 45
+        quantity:
+          type: number
+          minimum: 0
+          example: 10
+        createdBy:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+          example: "65f1a2b3c4d5e6f7g8h9i0j3"
+        slug:
+          type: string
+          example: "iphone-15-pro-a1b2c3d4"
+        metadata:
+          type: object
+          additionalProperties: true
+          example:
+            brand: "Apple"
+            color: "Titanium"
+            storage: "256GB"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+      required:
+        - _id
+        - name
+        - description
+        - price
+        - images
+        - categories
+        - isActive
+        - isFeatured
+        - status
+        - totalRating
+        - totalRatingPoints
+        - quantity
+        - createdBy
+        - slug
+        - createdAt
+        - updatedAt
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          description: Number of items per page
+          example: 10
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items
+          example: 25
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+          example: 3
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - "error"
+          example: "error"
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Error message"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field name that caused the error
+              message:
+                type: string
+                description: Error message for the field
+          description: Array of validation errors (only present for validation errors)
+      required:
+        - status
+        - code
+        - message 
