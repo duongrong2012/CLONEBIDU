@@ -100,7 +100,9 @@ const MESSAGES = {
   },
   BOOKMARK: {
     ADDED_SUCCESS: 'Product added to bookmarks successfully',
+    REMOVED_SUCCESS: 'Product removed from bookmarks successfully',
     ALREADY_BOOKMARKED: 'Product is already bookmarked',
+    NOT_BOOKMARKED: 'Product is not in your bookmarks',
     OWN_PRODUCT: 'Cannot bookmark your own product',
     PRODUCT_NOT_FOUND: 'Product not found',
     PRODUCT_INACTIVE: 'Cannot bookmark inactive product',

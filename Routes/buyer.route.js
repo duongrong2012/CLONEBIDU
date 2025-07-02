@@ -8,7 +8,7 @@ const { getCategories } = require('../Controllers/category.controller');
 const { validateGetCategories } = require('../Middlewares/validation.middleware');
 const { validateRatingProduct } = require('../Middlewares/product-validation.middleware');
 const { rateProduct } = require('../Controllers/product.controller');
-const { validateAddBookmark } = require('../Middlewares');
+const { validateAddBookmark, validateRemoveBookmark } = require('../Middlewares');
 
 // Protected routes
 router.get('/profile', verifyToken(), buyerController.getProfile);
@@ -26,6 +26,14 @@ router.post(
   verifyToken(),
   validateAddBookmark,
   bookmarkController.addBookmark
+);
+
+// Remove bookmark route
+router.delete(
+  '/products/:productId/bookmark',
+  verifyToken(),
+  validateRemoveBookmark,
+  bookmarkController.removeBookmark
 );
 
 module.exports = router;
