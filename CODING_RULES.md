@@ -114,3 +114,16 @@ When implementing a new feature, ensure all components are included:
 7. Design middleware for data validation and filtering
 8. Ensure controllers only receive validated data from middleware
 9. Plan error handling strategy (predictable vs unexpected errors)
+
+## 8. Common Utility and Middleware Usage Rules
+
+- Always reuse the following utilities/middleware for consistent and maintainable code:
+  - `catchAsync` (from `Utils/error.utils.js`): Use in controllers to handle unexpected (unforeseeable) errors in async functions.
+  - `AppError` (from `Utils/error.utils.js`): Use in middleware to handle all expected (predictable) errors, such as validation, business logic, and permission errors.
+  - `verifyToken` (from `Middlewares/auth.middleware.js`): Use as middleware for APIs that require user authentication (login required).
+  - `response.success` (from `Utils/response.utils.js`): Use in controllers to return standardized success responses to the client.
+  - For APIs with pagination:
+    - Use the `paginate` method in service classes (e.g., `BaseService`) to handle pagination logic and return the correct structure.
+    - Use `groupPagination` (from `Utils/response.utils.js`) in controllers to format paginated data and pagination info before sending to the client.
+- These utilities/middleware must be used according to their intended layer (middleware, controller, service) as described above.
+- This rule must be followed for all future implementations and code reviews.

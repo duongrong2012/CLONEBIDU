@@ -14,7 +14,7 @@ const {
   validateGetBookmarks,
 } = require('../Middlewares');
 const cartController = require('../Controllers/cart.controller');
-const { validateAddCart } = require('../Middlewares/cart-validation');
+const { validateAddCart, validateGetCart } = require('../Middlewares/cart-validation');
 
 // Protected routes
 router.get('/profile', verifyToken(), buyerController.getProfile);
@@ -47,5 +47,8 @@ router.get('/bookmarks', verifyToken(), validateGetBookmarks, bookmarkController
 
 // Add cart route
 router.post('/cart', verifyToken(), validateAddCart, cartController.addCart);
+
+// Get paginated cart
+router.get('/cart', verifyToken(), validateGetCart, cartController.getCart);
 
 module.exports = router;

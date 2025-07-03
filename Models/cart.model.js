@@ -9,6 +9,7 @@
 
 const mongoose = require('mongoose');
 const { Schema, Types } = mongoose;
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const cartSchema = new Schema(
   {
@@ -33,5 +34,7 @@ const cartSchema = new Schema(
 
 // Compound index to ensure unique user-product combination
 cartSchema.index({ user: 1, product: 1 }, { unique: true });
+
+cartSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('Cart', cartSchema);

@@ -1,0 +1,221 @@
+openapi: 3.0.0
+info:
+  title: Get Cart API
+  description: "Get paginated list of products in the current user's cart"
+  version: 1.0.0
+
+paths:
+  /buyer/cart:
+    get:
+      tags:
+        - Cart
+      summary: Get paginated cart products for current user
+      description: "Returns a paginated list of products in the authenticated user's cart.\nRequires Bearer authentication."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: "Page number (default: 1)"
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: "Number of items per page (default: 10)"
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, updatedAt]
+            default: createdAt
+          description: "Field to sort by (default: createdAt)"
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc, ascending, descending, 1, -1]
+            default: desc
+          description: "Sort order (default: desc)"
+      responses:
+        '200':
+          description: "Get cart successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Get cart successfully
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CartProduct'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+              examples:
+                success:
+                  summary: Success response
+                  value:
+                    status: success
+                    code: 200
+                    message: Get cart successfully
+                    data:
+                      data:
+                        - product:
+                            _id: 662f1b2c1a2b3c4d5e6f7a8b
+                            name: "iPhone 15 Pro Max"
+                            price: 29990000
+                            image: "https://cdn.example.com/iphone15.jpg"
+                          quantity: 2
+                          createdAt: "2024-06-01T10:00:00.000Z"
+                          updatedAt: "2024-06-01T10:00:00.000Z"
+                        - product:
+                            _id: 662f1b2c1a2b3c4d5e6f7a8c
+                            name: "Samsung S24 Ultra"
+                            price: 25990000
+                            image: "https://cdn.example.com/s24ultra.jpg"
+                          quantity: 1
+                          createdAt: "2024-06-01T10:05:00.000Z"
+                          updatedAt: "2024-06-01T10:05:00.000Z"
+                      pagination:
+                        page: 1
+                        limit: 10
+                        total: 2
+                        totalPages: 1
+        '400':
+          description: "Invalid query parameter"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPage:
+                  summary: Invalid page parameter
+                  value:
+                    status: error
+                    code: 400
+                    message: Invalid page parameter
+                    errors: null
+                invalidLimit:
+                  summary: Invalid limit parameter
+                  value:
+                    status: error
+                    code: 400
+                    message: Invalid limit parameter
+                    errors: null
+        '401':
+          description: "Unauthorized (missing or invalid token)"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Unauthorized
+                  value:
+                    status: error
+                    code: 401
+                    message: Token required
+                    errors: null
+        '500':
+          description: "Internal server error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: Server error
+                  value:
+                    status: error
+                    code: 500
+                    message: Internal server error
+                    errors: null
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CartProduct:
+      type: object
+      properties:
+        product:
+          type: object
+          description: "Product info (populated)"
+          properties:
+            _id:
+              type: string
+              description: "Product ID"
+              example: 662f1b2c1a2b3c4d5e6f7a8b
+            name:
+              type: string
+              example: "iPhone 15 Pro Max"
+            price:
+              type: number
+              example: 29990000
+            image:
+              type: string
+              example: "https://cdn.example.com/iphone15.jpg"
+          required: [_id, name, price]
+        quantity:
+          type: integer
+          example: 2
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T10:00:00.000Z"
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 2
+        totalPages:
+          type: integer
+          example: 1
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Invalid page parameter
+        errors:
+          type: object
+          nullable: true
+          example: null 
