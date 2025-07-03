@@ -107,6 +107,7 @@ const MESSAGES = {
     PRODUCT_NOT_FOUND: 'Product not found',
     PRODUCT_INACTIVE: 'Cannot bookmark inactive product',
     PRODUCT_UNAPPROVED: 'Cannot bookmark unapproved product',
+    FETCH_SUCCESS: 'Bookmarks retrieved successfully',
   },
   SEEDER: {
     SUPER_ADMIN_EXISTS: 'Super admin already exists',

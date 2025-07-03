@@ -1,11 +1,16 @@
 const User = require('../Models/user.model');
 const { AppError } = require('../Utils/error.utils');
 const { MESSAGES } = require('../Utils/constant');
+const Product = require('../Models/product.model');
+const BaseService = require('./base.service');
 
 /**
  * Service class for handling bookmark operations
  */
-class BookmarkService {
+class BookmarkService extends BaseService {
+  constructor() {
+    super(Product);
+  }
   /**
    * Add a product to user's bookmarks
    * @param {string} userId - User ID
@@ -55,6 +60,36 @@ class BookmarkService {
       if (error instanceof AppError) throw error;
       throw new AppError('Failed to remove bookmark', 500);
     }
+  }
+
+  /**
+   * Get paginated bookmarks for a user
+   * @param {Object} user - User object (already validated)
+   * @param {Object} query - Validated query params (page, limit, sortBy, sortOrder)
+   * @returns {Promise<Object>} Paginated bookmarks (products)
+   */
+  async getBookmarks(user, query) {
+    // Get bookmarked product IDs
+    const bookmarkIds = user.bookmarks || [];
+    // If no bookmarks, return empty result
+    if (bookmarkIds.length === 0) {
+      return {
+        data: [],
+        page: Number(query.page) || 1,
+        limit: Number(query.limit) || 10,
+        total: 0,
+        totalPages: 0,
+      };
+    }
+
+    const paginateQuery = {
+      ...query,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+    };
+    const result = await this.paginate(paginateQuery, { _id: { $in: bookmarkIds } });
+
+    return result;
   }
 }
 
