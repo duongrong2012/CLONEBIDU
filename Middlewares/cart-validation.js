@@ -2,6 +2,7 @@ const { isValidObjectId } = require('mongoose');
 const Product = require('../Models/product.model');
 const { AppError } = require('../Utils/error.utils');
 const { PRODUCT_STATUS } = require('../Utils/constant');
+const Cart = require('../Models/cart.model');
 
 /**
  * Middleware to validate add cart request
@@ -73,4 +74,51 @@ const validateGetCart = (req, res, next) => {
   next();
 };
 
-module.exports = { validateAddCart, validateGetCart };
+/**
+ * Middleware validate remove product from cart
+ * @param {Request} req
+ * @param {Response} res
+ * @param {Function} next
+ */
+const validateRemoveFromCart = async (req, res, next) => {
+  try {
+    let { productIds } = req.body;
+    if (!productIds) {
+      return next(new AppError('productIds is required', 400));
+    }
+    if (!Array.isArray(productIds)) {
+      productIds = [productIds];
+    }
+    if (productIds.length === 0) {
+      return next(new AppError('productIds must be a non-empty array', 400));
+    }
+    // Check duplicate productIds
+    const seen = new Set();
+    for (const id of productIds) {
+      if (!isValidObjectId(id)) {
+        return next(new AppError(`Invalid product id: ${id}`, 400));
+      }
+      if (seen.has(id)) {
+        return next(new AppError('Duplicate product id in productIds', 400));
+      }
+      seen.add(id);
+    }
+    // Kiểm tra tất cả productIds phải tồn tại trong cart của user
+    const userId = req.user._id;
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart || !cart.products || cart.products.length === 0) {
+      return next(new AppError('Cart is empty', 400));
+    }
+    const cartProductIds = cart.products.map(item => item.product.toString());
+    const notFound = productIds.filter(id => !cartProductIds.includes(id));
+    if (notFound.length > 0) {
+      return next(new AppError(`Product(s) not found in cart: ${notFound.join(', ')}`, 400));
+    }
+    req.validatedData = { productIds };
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { validateAddCart, validateGetCart, validateRemoveFromCart };

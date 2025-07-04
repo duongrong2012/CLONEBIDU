@@ -31,6 +31,18 @@ class CartController {
     const grouped = response.groupPagination(result);
     res.status(200).json(response.success('Get cart successfully', grouped));
   });
+
+  /**
+   * Remove products from cart for current user
+   * @route DELETE /buyer/cart
+   * @access Private (buyer)
+   */
+  removeFromCart = catchAsync(async (req, res) => {
+    const user = req.user;
+    const { productIds } = req.validatedData;
+    const cart = await cartService.removeProductsFromCart(user, productIds);
+    res.status(200).json(response.success('Removed products from cart successfully', cart));
+  });
 }
 
 module.exports = new CartController();

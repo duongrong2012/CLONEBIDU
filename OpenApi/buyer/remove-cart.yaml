@@ -1,0 +1,164 @@
+openapi: 3.0.0
+info:
+  title: "Remove Product(s) from Cart API"
+  description: "Remove one or more products from the current user's cart."
+  version: 1.0.0
+
+paths:
+  /buyer/cart:
+    delete:
+      tags:
+        - Cart
+      summary: "Remove product(s) from cart for current user"
+      description: "Removes one or more products from the authenticated user's cart. Requires Bearer authentication."
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productIds:
+                  type: array
+                  description: "Array of product IDs to remove from cart."
+                  items:
+                    type: string
+                    example: "662f1b2c1a2b3c4d5e6f7a8b"
+              required:
+                - productIds
+            examples:
+              single:
+                summary: "Remove one product"
+                value:
+                  productIds: ["662f1b2c1a2b3c4d5e6f7a8b"]
+              multiple:
+                summary: "Remove multiple products"
+                value:
+                  productIds: ["662f1b2c1a2b3c4d5e6f7a8b", "662f1b2c1a2b3c4d5e6f7a8c"]
+      responses:
+        '200':
+          description: "Removed products from cart successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Removed products from cart successfully
+                  data:
+                    type: object
+                    properties:
+                      products:
+                        type: array
+                        description: "Current products in cart after removal."
+                        items:
+                          $ref: '#/components/schemas/CartProduct'
+              examples:
+                success:
+                  summary: "Success response"
+                  value:
+                    status: success
+                    code: 200
+                    message: Removed products from cart successfully
+                    data:
+                      products: []
+        '400':
+          description: "Invalid request body or productIds"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidProductId:
+                  summary: "Invalid product id"
+                  value:
+                    status: error
+                    code: 400
+                    message: "Invalid product id: 123"
+                    errors: null
+                emptyArray:
+                  summary: "Empty productIds array"
+                  value:
+                    status: error
+                    code: 400
+                    message: "productIds must be a non-empty array"
+                    errors: null
+        '401':
+          description: "Unauthorized (missing or invalid token)"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: "Unauthorized"
+                  value:
+                    status: error
+                    code: 401
+                    message: "Token required"
+                    errors: null
+        '500':
+          description: "Internal server error"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: "Server error"
+                  value:
+                    status: error
+                    code: 500
+                    message: "Internal server error"
+                    errors: null
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CartProduct:
+      type: object
+      properties:
+        product:
+          type: string
+          description: "Product ID"
+          example: "662f1b2c1a2b3c4d5e6f7a8b"
+        quantity:
+          type: integer
+          example: 2
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T10:00:00.000Z"
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Invalid product id: 123"
+        errors:
+          type: object
+          nullable: true
+          example: null 
