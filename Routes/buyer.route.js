@@ -13,6 +13,8 @@ const {
   validateRemoveBookmark,
   validateGetBookmarks,
 } = require('../Middlewares');
+const cartController = require('../Controllers/cart.controller');
+const { validateAddCart } = require('../Middlewares/cart-validation');
 
 // Protected routes
 router.get('/profile', verifyToken(), buyerController.getProfile);
@@ -42,5 +44,8 @@ router.delete(
 
 // Get bookmarks route
 router.get('/bookmarks', verifyToken(), validateGetBookmarks, bookmarkController.getBookmarks);
+
+// Add cart route
+router.post('/cart', verifyToken(), validateAddCart, cartController.addCart);
 
 module.exports = router;

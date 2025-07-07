@@ -1,0 +1,152 @@
+openapi: 3.0.0
+info:
+  title: Add Cart API
+  description: "Add product to cart for buyer"
+  version: 1.0.0
+
+paths:
+  /buyer/cart:
+    post:
+      summary: Add product to cart
+      tags:
+        - Cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product
+                - quantity
+              properties:
+                product:
+                  type: string
+                  description: "Product ID"
+                  example: "665b1e2f8c1a2b001e8e4a1b"
+                quantity:
+                  type: integer
+                  minimum: 1
+                  description: "Quantity to add"
+                  example: 2
+            examples:
+              valid:
+                summary: "Valid request"
+                value:
+                  product: "665b1e2f8c1a2b001e8e4a1b"
+                  quantity: 2
+              invalid_quantity:
+                summary: "Invalid quantity"
+                value:
+                  product: "665b1e2f8c1a2b001e8e4a1b"
+                  quantity: 0
+      responses:
+        '200':
+          description: "Product added to cart successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: "Product added to cart successfully"
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: "665b1e2f8c1a2b001e8e4a1d"
+                      user:
+                        type: string
+                        example: "665b1e2f8c1a2b001e8e4a1a"
+                      product:
+                        type: string
+                        example: "665b1e2f8c1a2b001e8e4a1b"
+                      quantity:
+                        type: integer
+                        example: 2
+                      createdAt:
+                        type: string
+                        format: date-time
+                        example: "2024-06-01T12:00:00.000Z"
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        example: "2024-06-01T12:00:00.000Z"
+        '400':
+          description: "Bad request (validation or business error)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                invalid_product_id:
+                  summary: "Invalid product id"
+                  value:
+                    status: error
+                    message: "Invalid product id"
+                invalid_quantity:
+                  summary: "Invalid quantity"
+                  value:
+                    status: error
+                    message: "Quantity must be a positive integer"
+                not_approved_or_inactive:
+                  summary: "Product not approved or inactive"
+                  value:
+                    status: error
+                    message: "Product must be approved and active to add to cart"
+        '404':
+          description: "Product not found"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                product_not_found:
+                  summary: "Product not found"
+                  value:
+                    status: error
+                    message: "Product not found"
+        '500':
+          description: "Internal server error"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                server_error:
+                  summary: "Unexpected error"
+                  value:
+                    status: error
+                    message: "Internal server error"
+      security:
+        - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
