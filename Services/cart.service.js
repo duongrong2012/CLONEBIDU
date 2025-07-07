@@ -61,21 +61,17 @@ class CartService extends BaseService {
   }
 
   /**
-   * Remove products from cart by user and productIds
+   * Remove products from cart by user and productIds (new model: each document is one product)
    * @param {ObjectId} user - User id
    * @param {Array<string>} productIds - Array of product ids to remove
-   * @returns {Promise<Object>} Updated cart
+   * @returns {Promise<Array>} Remaining cart items
    */
   async removeProductsFromCart(user, productIds) {
-    const cart = await this.model.findOne({ user });
-    if (!cart) {
-      // If no cart, return empty cart
-      return { products: [] };
-    }
-    cart.products = cart.products.filter(item => !productIds.includes(item.product.toString()));
-    await cart.save();
-    await cart.populate('products.product');
-    return cart;
+    // Remove all cart documents matching user and productIds
+    await this.model.deleteMany({ user, product: { $in: productIds } });
+    // Return remaining cart items (populated)
+    const remaining = await this.model.find({ user }).populate('product').lean();
+    return remaining;
   }
 }
 

@@ -40,8 +40,12 @@ class CartController {
   removeFromCart = catchAsync(async (req, res) => {
     const user = req.user;
     const { productIds } = req.validatedData;
-    const cart = await cartService.removeProductsFromCart(user, productIds);
-    res.status(200).json(response.success('Removed products from cart successfully', cart));
+    const remainingCart = await cartService.removeProductsFromCart(user, productIds);
+    res
+      .status(200)
+      .json(
+        response.success('Removed products from cart successfully', { products: remainingCart })
+      );
   });
 }
 

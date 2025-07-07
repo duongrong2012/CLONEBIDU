@@ -70,7 +70,23 @@ paths:
                     code: 200
                     message: Removed products from cart successfully
                     data:
-                      products: []
+                      products:
+                        - product:
+                            _id: 662f1b2c1a2b3c4d5e6f7a8b
+                            name: "iPhone 15 Pro Max"
+                            price: 29990000
+                            image: "https://cdn.example.com/iphone15.jpg"
+                          quantity: 2
+                          createdAt: "2024-06-01T10:00:00.000Z"
+                          updatedAt: "2024-06-01T10:00:00.000Z"
+                        - product:
+                            _id: 662f1b2c1a2b3c4d5e6f7a8c
+                            name: "Samsung S24 Ultra"
+                            price: 25990000
+                            image: "https://cdn.example.com/s24ultra.jpg"
+                          quantity: 1
+                          createdAt: "2024-06-01T10:05:00.000Z"
+                          updatedAt: "2024-06-01T10:05:00.000Z"
         '400':
           description: "Invalid request body or productIds"
           content:
@@ -132,9 +148,23 @@ components:
       type: object
       properties:
         product:
-          type: string
-          description: "Product ID"
-          example: "662f1b2c1a2b3c4d5e6f7a8b"
+          type: object
+          description: "Product info (populated)"
+          properties:
+            _id:
+              type: string
+              description: "Product ID"
+              example: "662f1b2c1a2b3c4d5e6f7a8b"
+            name:
+              type: string
+              example: "iPhone 15 Pro Max"
+            price:
+              type: number
+              example: 29990000
+            image:
+              type: string
+              example: "https://cdn.example.com/iphone15.jpg"
+          required: [_id, name, price]
         quantity:
           type: integer
           example: 2

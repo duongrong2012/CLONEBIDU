@@ -75,7 +75,7 @@ const validateGetCart = (req, res, next) => {
 };
 
 /**
- * Middleware validate remove product from cart
+ * Middleware validate remove product from cart (new model: each document is one product)
  * @param {Request} req
  * @param {Response} res
  * @param {Function} next
@@ -103,14 +103,11 @@ const validateRemoveFromCart = async (req, res, next) => {
       }
       seen.add(id);
     }
-    // Kiểm tra tất cả productIds phải tồn tại trong cart của user
+    // Check each productId must have a cart document for this user
     const userId = req.user._id;
-    const cart = await Cart.findOne({ user: userId });
-    if (!cart || !cart.products || cart.products.length === 0) {
-      return next(new AppError('Cart is empty', 400));
-    }
-    const cartProductIds = cart.products.map(item => item.product.toString());
-    const notFound = productIds.filter(id => !cartProductIds.includes(id));
+    const found = await Cart.find({ user: userId, product: { $in: productIds } });
+    const foundIds = found.map(item => item.product.toString());
+    const notFound = productIds.filter(id => !foundIds.includes(id));
     if (notFound.length > 0) {
       return next(new AppError(`Product(s) not found in cart: ${notFound.join(', ')}`, 400));
     }
