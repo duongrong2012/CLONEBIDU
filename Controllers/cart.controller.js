@@ -18,6 +18,19 @@ class CartController {
     const cartItem = await cartService.addToCart(user, product, quantity);
     res.status(200).json(response.success('Product added to cart successfully', cartItem));
   });
+
+  /**
+   * Get paginated cart products for current user
+   * @route GET /buyer/cart
+   * @access Private (buyer)
+   */
+  getCart = catchAsync(async (req, res) => {
+    const userId = req.user._id;
+    const query = req.validatedQuery;
+    const result = await cartService.paginateCartByUserId(userId, query);
+    const grouped = response.groupPagination(result);
+    res.status(200).json(response.success('Get cart successfully', grouped));
+  });
 }
 
 module.exports = new CartController();
