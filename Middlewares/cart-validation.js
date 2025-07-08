@@ -19,8 +19,8 @@ const validateAddCart = async (req, res, next) => {
     }
 
     // Validate quantity
-    if (typeof quantity !== 'number' || quantity < 1) {
-      return next(new AppError('Quantity must be a positive integer', 400));
+    if (typeof quantity !== 'number' || quantity < 0 || !Number.isInteger(quantity)) {
+      return next(new AppError('Quantity must be a non-negative integer', 400));
     }
 
     // Check product existence and status
