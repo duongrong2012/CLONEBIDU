@@ -16,6 +16,10 @@ class CartController {
     const user = req.user;
     const { product, quantity } = req.validatedData;
     const cartItem = await cartService.addToCart(user, product, quantity);
+    if (cartItem === null) {
+      res.status(200).json(response.success('Product removed from cart successfully', null));
+      return;
+    }
     res.status(200).json(response.success('Product added to cart successfully', cartItem));
   });
 

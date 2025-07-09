@@ -17,6 +17,11 @@ class CartService extends BaseService {
    * @returns {Promise<Object>} Created or updated cart item
    */
   async addToCart(user, product, quantity) {
+    if (quantity === 0) {
+      // Remove cart item if exists
+      await Cart.deleteOne({ user, product });
+      return null;
+    }
     // Try to find existing cart item for this user and product
     let cartItem = await Cart.findOne({ user, product });
 

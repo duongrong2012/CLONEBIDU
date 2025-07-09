@@ -26,8 +26,8 @@ paths:
                   example: "665b1e2f8c1a2b001e8e4a1b"
                 quantity:
                   type: integer
-                  minimum: 1
-                  description: "Quantity to add"
+                  minimum: 0
+                  description: "Quantity to add (if 0, product will be removed from cart)"
                   example: 2
             examples:
               valid:
@@ -35,14 +35,14 @@ paths:
                 value:
                   product: "665b1e2f8c1a2b001e8e4a1b"
                   quantity: 2
-              invalid_quantity:
-                summary: "Invalid quantity"
+              remove_product:
+                summary: "Remove product from cart"
                 value:
                   product: "665b1e2f8c1a2b001e8e4a1b"
                   quantity: 0
       responses:
         '200':
-          description: "Product added to cart successfully"
+          description: "Product added to cart or removed from cart successfully"
           content:
             application/json:
               schema:
@@ -53,30 +53,50 @@ paths:
                     example: success
                   message:
                     type: string
-                    example: "Product added to cart successfully"
                   data:
-                    type: object
-                    properties:
-                      _id:
-                        type: string
-                        example: "665b1e2f8c1a2b001e8e4a1d"
-                      user:
-                        type: string
-                        example: "665b1e2f8c1a2b001e8e4a1a"
-                      product:
-                        type: string
-                        example: "665b1e2f8c1a2b001e8e4a1b"
-                      quantity:
-                        type: integer
-                        example: 2
-                      createdAt:
-                        type: string
-                        format: date-time
-                        example: "2024-06-01T12:00:00.000Z"
-                      updatedAt:
-                        type: string
-                        format: date-time
-                        example: "2024-06-01T12:00:00.000Z"
+                    oneOf:
+                      - type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: "665b1e2f8c1a2b001e8e4a1d"
+                          user:
+                            type: string
+                            example: "665b1e2f8c1a2b001e8e4a1a"
+                          product:
+                            type: string
+                            example: "665b1e2f8c1a2b001e8e4a1b"
+                          quantity:
+                            type: integer
+                            example: 2
+                          createdAt:
+                            type: string
+                            format: date-time
+                            example: "2024-06-01T12:00:00.000Z"
+                          updatedAt:
+                            type: string
+                            format: date-time
+                            example: "2024-06-01T12:00:00.000Z"
+                      - type: "null"
+              examples:
+                add:
+                  summary: "Add product to cart"
+                  value:
+                    status: success
+                    message: "Product added to cart successfully"
+                    data:
+                      _id: "665b1e2f8c1a2b001e8e4a1d"
+                      user: "665b1e2f8c1a2b001e8e4a1a"
+                      product: "665b1e2f8c1a2b001e8e4a1b"
+                      quantity: 2
+                      createdAt: "2024-06-01T12:00:00.000Z"
+                      updatedAt: "2024-06-01T12:00:00.000Z"
+                remove:
+                  summary: "Remove product from cart"
+                  value:
+                    status: success
+                    message: "Product removed from cart successfully"
+                    data: null
         '400':
           description: "Bad request (validation or business error)"
           content:
@@ -99,7 +119,7 @@ paths:
                   summary: "Invalid quantity"
                   value:
                     status: error
-                    message: "Quantity must be a positive integer"
+                    message: "Quantity must be a non-negative integer"
                 not_approved_or_inactive:
                   summary: "Product not approved or inactive"
                   value:
