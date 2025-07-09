@@ -6,19 +6,19 @@ class ResponseUtils {
   /**
    * Create success response
    * @param {string} message - Success message
-   * @param {any} [data=null] - Response data (optional)
+   * @param {any} [payload=null] - Response data (optional)
    * @param {number} [statusCode=200] - HTTP status code
    * @returns {Object} Formatted success response
    * @example
    * // returns { status: 'success', code: 200, message: 'User created', data: { id: 1 } }
    * success('User created', { id: 1 })
    */
-  success(message, data = null, statusCode = 200) {
+  success(message, payload = null, statusCode = 200) {
     return {
       status: 'success',
       code: statusCode,
       message,
-      data,
+      payload,
     };
   }
 

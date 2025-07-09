@@ -86,6 +86,31 @@ node seeders/province-seeder.js
 - This operation is destructive: it will delete all existing provinces before importing.
 - Make sure your database connection string is correct and you have the necessary permissions.
 
+## Ward Seeder
+
+This project includes a seeder script to import all wards from `ward.json` into the MongoDB `wards` collection.
+
+### Usage
+
+1. **Ensure your `.env` file contains a valid `MONGO_URI` for your MongoDB instance.**
+2. Run the following command from the project root:
+
+```bash
+npm run seed:ward
+```
+
+- The script will connect to your database, remove all existing wards, and import the new data.
+- You should see `Wards seeded successfully!` if the operation completes without errors.
+
+**Alternatively, you can run the script directly:**
+```bash
+node seeders/ward-seeder.js
+```
+
+### Notes
+- This operation is destructive: it will delete all existing wards before importing.
+- Make sure your database connection string is correct and you have the necessary permissions.
+
 ## API Endpoints
 
 ### Authentication
