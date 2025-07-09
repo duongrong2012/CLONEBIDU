@@ -8,6 +8,7 @@
     "format:check": "prettier --check .",
     "seed:super-admin": "node seeders/create-super-admin.js",
     "seed:update-product-status": "node seeders/update-product-status.js",
+    "seed:province": "node seeders/province-seeder.js",
     "prepare": "husky install"
   },
   "dependencies": {

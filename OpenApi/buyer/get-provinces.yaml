@@ -1,0 +1,105 @@
+openapi: 3.0.0
+info:
+  title: Get Provinces
+  description: Get list of provinces
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /buyer/provinces:
+    get:
+      summary: Get list of provinces
+      tags:
+        - Province
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+          description: Number of items per page
+      responses:
+        '200':
+          description: List of provinces
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Get provinces successfully
+                  data:
+                    type: object
+                    properties:
+                      docs:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Province'
+                      totalDocs:
+                        type: integer
+                        example: 44
+                      limit:
+                        type: integer
+                        example: 10
+                      page:
+                        type: integer
+                        example: 1
+                      totalPages:
+                        type: integer
+                        example: 5
+                      hasNextPage:
+                        type: boolean
+                        example: true
+                      hasPrevPage:
+                        type: boolean
+                        example: false
+        '400':
+          description: Invalid query params
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Province:
+      type: object
+      properties:
+        code:
+          type: string
+          example: '11'
+        name:
+          type: string
+          example: 'Hà Nội'
+        slug:
+          type: string
+          example: 'ha-noi'
+        type:
+          type: string
+          example: 'thanh-pho'
+        name_with_type:
+          type: string
+          example: 'Thành phố Hà Nội'
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Page must be a positive integer. 
