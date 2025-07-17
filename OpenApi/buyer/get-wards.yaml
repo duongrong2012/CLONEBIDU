@@ -1,0 +1,120 @@
+openapi: 3.0.0
+info:
+  title: Get Wards
+  description: Get list of wards
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /buyer/wards:
+    get:
+      summary: Get list of wards
+      tags:
+        - Ward
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+          description: Number of items per page
+        - in: query
+          name: parentCode
+          schema:
+            type: string
+          required: false
+          description: Filter wards by parent_code (district code)
+      responses:
+        '200':
+          description: List of wards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Get wards successfully
+                  data:
+                    type: object
+                    properties:
+                      docs:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Ward'
+                      totalDocs:
+                        type: integer
+                        example: 1000
+                      limit:
+                        type: integer
+                        example: 20
+                      page:
+                        type: integer
+                        example: 1
+                      totalPages:
+                        type: integer
+                        example: 50
+                      hasNextPage:
+                        type: boolean
+                        example: true
+                      hasPrevPage:
+                        type: boolean
+                        example: false
+        '400':
+          description: Invalid query params
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Ward:
+      type: object
+      properties:
+        code:
+          type: string
+          example: '267'
+        name:
+          type: string
+          example: 'Minh Châu'
+        slug:
+          type: string
+          example: 'minh-chau'
+        type:
+          type: string
+          example: 'xa'
+        name_with_type:
+          type: string
+          example: 'Xã Minh Châu'
+        path:
+          type: string
+          example: 'Minh Châu, Hà Nội'
+        path_with_type:
+          type: string
+          example: 'Xã Minh Châu, Thành phố Hà Nội'
+        parent_code:
+          type: string
+          example: '11'
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Page must be a positive integer. 
