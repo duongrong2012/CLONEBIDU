@@ -38,3 +38,4 @@ cartSchema.index({ user: 1, product: 1 }, { unique: true });
 cartSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('Cart', cartSchema);
+ 
