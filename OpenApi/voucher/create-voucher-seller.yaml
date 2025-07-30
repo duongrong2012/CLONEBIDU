@@ -1,0 +1,363 @@
+openapi: 3.0.0
+info:
+  title: Create Voucher for Seller API
+  version: 1.0.0
+  description: |
+    API for sellers to create vouchers for their shop.
+    
+    ## Validation Rules:
+    - Uses express-validator for input validation
+    - All validation errors are returned in standardized format
+    - Voucher code must be uppercase and follow pattern: A-Z, 0-9, underscore (_) or hyphen (-)
+    - Code cannot contain both underscore and hyphen
+    - Code cannot start/end with underscore or hyphen
+    - Code cannot have consecutive underscores or hyphens
+    - Percentage discount cannot exceed 100%
+    - Fixed discount cannot exceed 1,000,000,000
+    - Quantity must be >= 1
+    - Start date and end date must be valid ISO8601 format
+    - All ObjectId references are validated for format and existence
+    - Seller vouchers only apply to their own shop (no applicableSellers field allowed)
+    - Status is automatically set to PENDING
+    - Source is automatically set to SHOP
+
+paths:
+  /buyer/vouchers:
+    post:
+      tags:
+        - Voucher
+      summary: Create a new voucher (Seller only)
+      description: |
+        Create a new voucher for seller's shop.
+        
+        **Business Rules:**
+        - Seller vouchers only apply to their own shop (no applicableSellers field allowed)
+        - Voucher automatically applies only to the creating seller's shop
+        - Status is automatically set to PENDING
+        - Source is automatically set to SHOP
+        - No business date validation (seller can set past dates)
+        
+        **Access Control:**
+        - Only SELLER role can access this endpoint
+        
+        **Validation:**
+        - All fields are validated using express-validator
+        - ObjectId format validation before DB queries
+        - Entity existence validation (sellers, users, products, categories)
+        - Duplicate code check (case-insensitive)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - type
+                - discountValue
+                - startDate
+                - endDate
+                - quantity
+              properties:
+                code:
+                  type: string
+                  description: |
+                    Voucher code (will be converted to uppercase).
+                    Only allows A-Z, 0-9, underscore (_) or hyphen (-).
+                    Cannot contain both underscore and hyphen.
+                    Cannot start/end with underscore or hyphen.
+                    Cannot have consecutive underscores or hyphens.
+                  example: "SUMMER2024"
+                type:
+                  type: string
+                  enum: [PERCENTAGE, FIXED]
+                  description: Type of discount
+                  example: "PERCENTAGE"
+                discountValue:
+                  type: number
+                  format: float
+                  minimum: 0.01
+                  description: |
+                    Discount value based on type.
+                    For PERCENTAGE: 0.01-100
+                    For FIXED: 0.01-1,000,000,000
+                  example: 15.5
+                startDate:
+                  type: string
+                  format: date-time
+                  description: Start date in ISO8601 format
+                  example: "2024-06-01T00:00:00.000Z"
+                endDate:
+                  type: string
+                  format: date-time
+                  description: End date in ISO8601 format (must be after startDate)
+                  example: "2024-08-31T23:59:59.999Z"
+                quantity:
+                  type: integer
+                  minimum: 1
+                  description: Number of vouchers available
+                  example: 100
+                description:
+                  type: string
+                  description: Optional description of the voucher
+                  example: "Summer sale discount for all products"
+                minOrderValue:
+                  type: number
+                  format: float
+                  minimum: 0
+                  description: Minimum order value required to use voucher
+                  example: 50000
+                maxDiscount:
+                  type: number
+                  format: float
+                  minimum: 0
+                  description: Maximum discount amount that can be applied
+                  example: 100000
+                usageLimitPerUser:
+                  type: integer
+                  minimum: 1
+                  description: Maximum times a user can use this voucher
+                  example: 1
+                # applicableSellers field is not allowed for seller-created vouchers
+                # Voucher automatically applies only to the creating seller's shop
+                applicableUsers:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of user IDs who can use this voucher
+                  example: ["507f1f77bcf86cd799439012"]
+                applicableProducts:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of product IDs this voucher applies to
+                  example: ["507f1f77bcf86cd799439013"]
+                applicableCategories:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of category IDs this voucher applies to
+                  example: ["507f1f77bcf86cd799439014"]
+                isActive:
+                  type: boolean
+                  description: "Whether the voucher is active (default: true)"
+                  example: true
+                isPublic:
+                  type: boolean
+                  description: "Whether the voucher is publicly visible (default: false)"
+                  example: false
+      responses:
+        '201':
+          description: Voucher created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Voucher created successfully"
+                  data:
+                    $ref: '#/components/schemas/Voucher'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Validation failed"
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: "code"
+                        message:
+                          type: string
+                          example: "Voucher code must be uppercase."
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "Unauthorized"
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Forbidden"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Internal server error"
+
+components:
+  schemas:
+    Voucher:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Voucher ID
+          example: "507f1f77bcf86cd799439015"
+        code:
+          type: string
+          description: Voucher code (uppercase)
+          example: "SUMMER2024"
+        description:
+          type: string
+          description: Voucher description
+          example: "Summer sale discount for all products"
+        type:
+          type: string
+          enum: [PERCENTAGE, FIXED]
+          description: Type of discount
+          example: "PERCENTAGE"
+        discountValue:
+          type: number
+          format: float
+          description: Discount value
+          example: 15.5
+        maxDiscount:
+          type: number
+          format: float
+          description: Maximum discount amount
+          example: 100000
+        startDate:
+          type: string
+          format: date-time
+          description: Start date
+          example: "2024-06-01T00:00:00.000Z"
+        endDate:
+          type: string
+          format: date-time
+          description: End date
+          example: "2024-08-31T23:59:59.999Z"
+        quantity:
+          type: integer
+          description: Total quantity available
+          example: 100
+        currentUsage:
+          type: integer
+          description: Number of vouchers used
+          example: 0
+        minOrderValue:
+          type: number
+          format: float
+          description: Minimum order value required
+          example: 50000
+        usageLimitPerUser:
+          type: integer
+          description: Usage limit per user
+          example: 1
+        applicableSellers:
+          type: array
+          items:
+            type: string
+          description: Array of seller IDs (always contains only the creating seller's ID)
+          example: ["507f1f77bcf86cd799439011"]
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, EXPIRED]
+          description: Voucher status (always PENDING for seller-created)
+          example: "PENDING"
+        source:
+          type: string
+          enum: [SYSTEM, SHOP]
+          description: Voucher source (always SHOP for seller-created)
+          example: "SHOP"
+        applicableUsers:
+          type: array
+          items:
+            type: string
+          description: Array of user IDs
+          example: ["507f1f77bcf86cd799439012"]
+        applicableProducts:
+          type: array
+          items:
+            type: string
+          description: Array of product IDs
+          example: ["507f1f77bcf86cd799439013"]
+        applicableCategories:
+          type: array
+          items:
+            type: string
+          description: Array of category IDs
+          example: ["507f1f77bcf86cd799439014"]
+        isActive:
+          type: boolean
+          description: Whether voucher is active
+          example: true
+        isPublic:
+          type: boolean
+          description: Whether voucher is publicly visible
+          example: false
+        createdBy:
+          type: string
+          description: ID of user who created the voucher
+          example: "507f1f77bcf86cd799439016"
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:30:00.000Z"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 

@@ -442,6 +442,178 @@ const validateCreateVoucherAdmin = [
   },
 ];
 
+/**
+ * Middleware to validate create voucher request for SELLER only using express-validator
+ * - Only accept allowed fields
+ * - Validate required, type, business rule
+ * - Seller voucher only applies to their own shop (no applicableSellers field allowed)
+ * - Default status is pending, source is SHOP
+ * - If valid, assign req.validatedData for controller
+ */
+const validateCreateVoucherSeller = [
+  // Common validations
+  ...commonValidations.code,
+  ...commonValidations.type,
+  ...commonValidations.discountValue,
+  ...createDateValidations(true), // No business rules for seller
+  ...commonValidations.quantity,
+  ...commonValidations.optionalFields,
+
+  // Seller-specific validations - no applicableSellers allowed
+
+  // Check for validation errors and format them
+  (req, res, next) => {
+    const errors = validationResult(req);
+    let allErrors = [];
+    if (!errors.isEmpty()) {
+      allErrors = errors.array().map(err => ({
+        field: err.path,
+        message: err.msg,
+      }));
+    }
+    // Only allow valid fields (no applicableSellers for seller vouchers)
+    const allowedFields = [
+      'code',
+      'type',
+      'discountValue',
+      'startDate',
+      'endDate',
+      'quantity',
+      'description',
+      'minOrderValue',
+      'maxDiscount',
+      'usageLimitPerUser',
+      'applicableUsers',
+      'applicableProducts',
+      'applicableCategories',
+      'isActive',
+      'isPublic',
+    ];
+    const disallowedFields = Object.keys(req.body).filter(f => !allowedFields.includes(f));
+    if (disallowedFields.length > 0) {
+      disallowedFields.forEach(f => {
+        allErrors.push({ field: f, message: `Field ${f} is not allowed.` });
+      });
+    }
+    if (allErrors.length > 0) {
+      return next(new AppError('Validation failed', 400, allErrors));
+    }
+    // Normalize data for DB validation step
+    req.filteredData = {};
+    allowedFields.forEach(f => {
+      if (req.body[f] !== undefined) req.filteredData[f] = req.body[f];
+    });
+    next();
+  },
+  // DB validations
+  async (req, res, next) => {
+    const errors = [];
+    const { code, applicableUsers, applicableProducts, applicableCategories } = req.filteredData;
+
+    // Validate ObjectId format for all reference fields (non-DB validation)
+    const objectIdFields = [
+      { field: 'applicableUsers', value: applicableUsers },
+      { field: 'applicableProducts', value: applicableProducts },
+      { field: 'applicableCategories', value: applicableCategories },
+    ];
+
+    validateObjectIdFields(objectIdFields, errors);
+
+    if (errors.length > 0) {
+      return next(new AppError('Validation failed', 400, errors));
+    }
+
+    // Check duplicate code
+    try {
+      if (code) {
+        const codeUpper = code.trim().toUpperCase();
+        const exists = await require('../Models/voucher.model').findOne({ code: codeUpper });
+        if (exists) {
+          errors.push({ field: 'code', message: 'Voucher code already exists' });
+        }
+      }
+    } catch (err) {
+      errors.push({ field: 'code', message: err.message });
+    }
+    // Validate entity existence (no applicableSellers validation for seller vouchers)
+    const entityValidations = [
+      {
+        ids: applicableUsers,
+        Model: require('../Models/user.model'),
+        fieldName: 'applicableUsers',
+        errorMessage: 'Some users do not exist',
+      },
+      {
+        ids: applicableProducts,
+        Model: require('../Models/product.model'),
+        fieldName: 'applicableProducts',
+        errorMessage: 'Some products do not exist',
+      },
+      {
+        ids: applicableCategories,
+        Model: require('../Models/category.model'),
+        fieldName: 'applicableCategories',
+        errorMessage: 'Some categories do not exist',
+      },
+    ];
+    const validationResults = await Promise.all(
+      entityValidations.map(validation =>
+        validateEntityExistence(
+          validation.ids,
+          validation.Model,
+          validation.fieldName,
+          validation.errorMessage,
+          validation.additionalQuery
+        )
+      )
+    );
+    validationResults.forEach(result => {
+      if (result) errors.push(result);
+    });
+    if (errors.length > 0) {
+      return next(new AppError('Validation failed', 400, errors));
+    }
+    // Normalize data for controller
+    const {
+      description: seller_description,
+      type: seller_type,
+      discountValue: seller_discountValue,
+      maxDiscount: seller_maxDiscount,
+      startDate: seller_startDate,
+      endDate: seller_endDate,
+      quantity: seller_quantity,
+      minOrderValue: seller_minOrderValue,
+      usageLimitPerUser: seller_usageLimitPerUser,
+      isActive: seller_isActive,
+      isPublic: seller_isPublic,
+      applicableUsers: seller_applicableUsers,
+      applicableProducts: seller_applicableProducts,
+      applicableCategories: seller_applicableCategories,
+    } = req.body;
+    req.validatedData = {
+      code: code ? code.trim().toUpperCase() : '',
+      description: seller_description ? seller_description.trim() : '',
+      type: seller_type,
+      discountValue: seller_discountValue,
+      maxDiscount: seller_maxDiscount || 0,
+      startDate: new Date(seller_startDate),
+      endDate: new Date(seller_endDate),
+      quantity: seller_quantity,
+      minOrderValue: seller_minOrderValue || 0,
+      usageLimitPerUser: seller_usageLimitPerUser || 1,
+      applicableUsers: seller_applicableUsers || [],
+      applicableProducts: seller_applicableProducts || [],
+      applicableCategories: seller_applicableCategories || [],
+      isActive: seller_isActive !== undefined ? seller_isActive : true,
+      isPublic: seller_isPublic !== undefined ? seller_isPublic : false,
+      status: VOUCHER_STATUS.PENDING,
+      source: VOUCHER_SOURCE.SHOP,
+    };
+    next();
+  },
+];
+
 module.exports = {
   validateCreateVoucherAdmin,
+  validateCreateVoucherSeller,
 };

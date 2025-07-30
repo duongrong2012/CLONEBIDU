@@ -19,6 +19,8 @@ const provinceValidation = require('../Middlewares/province-validation');
 const provinceController = require('../Controllers/province.controller');
 const wardValidation = require('../Middlewares/ward-validation');
 const wardController = require('../Controllers/ward.controller');
+const { validateCreateVoucherSeller } = require('../Middlewares/voucher-validation.middleware');
+const voucherController = require('../Controllers/voucher.controller');
 
 // Protected routes
 router.get('/profile', verifyToken(), buyerController.getProfile);
@@ -57,5 +59,13 @@ router.get('/cart', verifyToken(), validateGetCart, cartController.getCart);
 
 router.get('/provinces', provinceValidation, provinceController.getProvinces);
 router.get('/wards', wardValidation, wardController.getWards);
+
+// Seller create voucher
+router.post(
+  '/vouchers',
+  verifyToken(['SELLER']),
+  validateCreateVoucherSeller,
+  voucherController.createVoucherSeller
+);
 
 module.exports = router;
