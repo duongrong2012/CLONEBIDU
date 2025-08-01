@@ -1,0 +1,314 @@
+paths:
+  /admin/vouchers:
+    post:
+      tags:
+        - Voucher
+      summary: Create a new voucher (Admin only)
+      description: |
+        Create a new voucher for admin. Only users with role SUPER_ADMIN or ADMIN can access this endpoint.
+        All input data is strictly validated using express-validator middleware before reaching the controller.
+        
+        **Validation Rules:**
+        - Required fields: code, type, discountValue, startDate, endDate, quantity
+        - code must be uppercase, only A-Z, 0-9, underscore, hyphen allowed
+        - code cannot mix underscore and hyphen, no consecutive special characters
+        - code cannot start or end with special characters
+        - code must be unique in the system
+        - type must be PERCENTAGE or FIXED
+        - discountValue must be > 0
+        - For PERCENTAGE type: discountValue must be <= 100
+        - For FIXED type: discountValue must be <= 1000000000
+        - quantity must be >= 1 (required)
+        - applicableSellers must be array of valid ObjectIds (sellers must exist and have seller role)
+        - applicableUsers must be array of valid ObjectIds (users must exist)
+        - applicableProducts must be array of valid ObjectIds (products must exist)
+        - applicableCategories must be array of valid ObjectIds (categories must exist)
+        - startDate must be >= current date
+        - endDate must be > startDate
+        - minOrderValue must be >= 0 (optional)
+        - maxDiscount must be >= 0 (optional)
+        - usageLimitPerUser must be >= 1 (optional)
+        - description must be <= 500 characters (optional)
+        - status can be any valid status (admin can set any status)
+        
+        **Business Rules:**
+        - Voucher source will be automatically set to "SYSTEM"
+        - All ObjectId references are validated for existence in database
+        - Duplicate code check is performed (case-insensitive)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - type
+                - discountValue
+                - startDate
+                - endDate
+                - quantity
+              properties:
+                code:
+                  type: string
+                  minLength: 1
+                  pattern: "^[A-Z0-9_-]+$"
+                  description: |
+                    Voucher code (must be uppercase)
+                    - Only A-Z, 0-9, underscore, hyphen allowed
+                    - Cannot mix underscore and hyphen
+                    - No consecutive special characters
+                    - Cannot start or end with special characters
+                    - Must be unique in the system
+                  example: "SUMMER2024"
+                type:
+                  type: string
+                  enum: [PERCENTAGE, FIXED]
+                  description: Discount type
+                  example: "PERCENTAGE"
+                discountValue:
+                  type: number
+                  minimum: 0.01
+                  description: |
+                    Discount value
+                    - For PERCENTAGE: must be <= 100
+                    - For FIXED: must be <= 1000000000
+                  example: 20
+                maxDiscount:
+                  type: number
+                  minimum: 0
+                  description: Maximum discount amount allowed (for percentage type)
+                  example: 50000
+                applicableSellers:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^[a-fA-F0-9]{24}$"
+                  description: |
+                    Array of seller user ObjectIds (must exist and have seller role)
+                    - Admin can set any sellers
+                  example: ["65f1a2b3c4d5e6f7g8h9i0j1"]
+                applicableUsers:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^[a-fA-F0-9]{24}$"
+                  description: Array of user ObjectIds who can use this voucher (must exist)
+                  example: ["65f1a2b3c4d5e6f7g8h9i0j2"]
+                applicableProducts:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^[a-fA-F0-9]{24}$"
+                  description: |
+                    Array of product ObjectIds (must exist in DB)
+                    - Admin can set any products
+                  example: ["65f1a2b3c4d5e6f7g8h9i0j3"]
+                applicableCategories:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^[a-fA-F0-9]{24}$"
+                  description: Array of category ObjectIds (must exist in DB)
+                  example: ["65f1a2b3c4d5e6f7g8h9i0j4"]
+                startDate:
+                  type: string
+                  format: date-time
+                  description: Voucher start date (must be >= current date)
+                  example: "2024-06-01T00:00:00.000Z"
+                endDate:
+                  type: string
+                  format: date-time
+                  description: Voucher end date (must be > startDate)
+                  example: "2024-12-31T23:59:59.000Z"
+                quantity:
+                  type: integer
+                  minimum: 1
+                  description: Total available quantity of voucher (required)
+                  example: 1000
+                minOrderValue:
+                  type: number
+                  minimum: 0
+                  description: Minimum order value required to use this voucher
+                  example: 100000
+                usageLimitPerUser:
+                  type: integer
+                  minimum: 1
+                  description: Usage limit per user
+                  example: 1
+                description:
+                  type: string
+                  maxLength: 500
+                  description: Voucher description
+                  example: "Summer sale voucher - 20% off on all products"
+                isActive:
+                  type: boolean
+                  description: Voucher active status
+                  example: true
+                isPublic:
+                  type: boolean
+                  description: Whether voucher is public
+                  example: false
+                status:
+                  type: string
+                  enum: [PENDING, APPROVED, REJECTED]
+                  description: Voucher status (admin can set any status)
+                  example: "PENDING"
+      responses:
+        '200':
+          description: Voucher created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Voucher created successfully"
+                  payload:
+                    $ref: '#/components/schemas/Voucher'
+        '400':
+          description: Bad request (validation or business rule error)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  code:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Validation failed"
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: "code"
+                        message:
+                          type: string
+                          example: "Voucher code must be uppercase."
+        '401':
+          description: Unauthorized (missing or invalid token)
+        '403':
+          description: Forbidden (not admin or super admin)
+        '404':
+          description: Resource not found (if any seller, user, product, or category does not exist)
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Voucher:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+        code:
+          type: string
+          example: "SUMMER2024"
+        type:
+          type: string
+          enum: [PERCENTAGE, FIXED]
+          example: "PERCENTAGE"
+        discountValue:
+          type: number
+          example: 20
+        maxDiscount:
+          type: number
+          example: 50000
+        applicableSellers:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+          example: ["65f1a2b3c4d5e6f7g8h9i0j1"]
+        applicableUsers:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+          example: ["65f1a2b3c4d5e6f7g8h9i0j2"]
+        applicableProducts:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+          example: ["65f1a2b3c4d5e6f7g8h9i0j3"]
+        applicableCategories:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+          example: ["65f1a2b3c4d5e6f7g8h9i0j4"]
+        startDate:
+          type: string
+          format: date-time
+          example: "2024-06-01T00:00:00.000Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2024-12-31T23:59:59.000Z"
+        quantity:
+          type: integer
+          example: 1000
+        currentUsage:
+          type: integer
+          example: 0
+        usageLimitPerUser:
+          type: integer
+          example: 1
+        minOrderValue:
+          type: number
+          example: 100000
+        description:
+          type: string
+          example: "Summer sale voucher - 20% off on all products"
+        isActive:
+          type: boolean
+          example: true
+        isPublic:
+          type: boolean
+          example: false
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          example: "PENDING"
+        rejectReason:
+          type: string
+          nullable: true
+          example: null
+        source:
+          type: string
+          enum: [SYSTEM, SHOP]
+          description: Voucher source (SYSTEM for admin-created, SHOP for seller-created)
+          example: "SYSTEM"
+        createdBy:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+          example: "65f1a2b3c4d5e6f7g8h9i0j1"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-06-01T12:00:00.000Z" 

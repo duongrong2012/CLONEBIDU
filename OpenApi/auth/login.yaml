@@ -27,6 +27,7 @@ components:
           description: User password
           example: Password123!
 
+
     LoginResponse:
       type: object
       properties:
@@ -104,6 +105,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+            examples:
+              regularUser:
+                summary: Regular user login
+                value:
+                  email: user@example.com
+                  password: Password123!
+              adminUser:
+                summary: Admin user login
+                value:
+                  email: superadmin@bidu.com
+                  password: Superadmin123@
       responses:
         '200':
           description: Login successful

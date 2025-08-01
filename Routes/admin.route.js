@@ -11,6 +11,7 @@ const {
   validateUpdateProduct,
   validateGetProductById,
 } = require('../Middlewares/validation.middleware');
+const { validateCreateVoucherAdmin } = require('../Middlewares/voucher-validation.middleware');
 const { getUsers, updateUser } = require('../Controllers/user.controller');
 const { createCategory, updateCategory } = require('../Controllers/category.controller');
 const {
@@ -19,6 +20,7 @@ const {
   updateProduct,
   getProductById,
 } = require('../Controllers/product.controller');
+const voucherController = require('../Controllers/voucher.controller');
 const { USER_ROLES } = require('../Utils/constant');
 
 router.get('/users', verifyToken(USER_ROLES.SUPER_ADMIN), validateGetUsers(), getUsers);
@@ -56,6 +58,14 @@ router.patch(
   verifyToken([USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.SELLER]),
   validateUpdateProduct,
   updateProduct
+);
+
+// Voucher routes
+router.post(
+  '/vouchers',
+  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
+  validateCreateVoucherAdmin,
+  voucherController.createVoucherAdmin
 );
 
 module.exports = router;
