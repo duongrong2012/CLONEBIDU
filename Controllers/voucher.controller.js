@@ -33,6 +33,17 @@ class VoucherController {
     const voucher = await voucherService.createVoucherSeller(data, sellerId);
     res.json(response.success('Voucher created successfully', voucher));
   });
+
+  /**
+   * Update a voucher (Admin only)
+   * @route PATCH /admin/vouchers/:id
+   * @access Admin, Super Admin
+   */
+  updateVoucherAdmin = catchAsync(async (req, res) => {
+    const { voucherId, updateData } = req.validatedData;
+    const voucher = await voucherService.updateVoucherAdmin(voucherId, updateData);
+    res.json(response.success('Voucher updated successfully', voucher));
+  });
 }
 
 module.exports = new VoucherController();

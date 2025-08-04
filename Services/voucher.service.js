@@ -33,6 +33,21 @@ class VoucherService {
     const voucher = await Voucher.create(voucherData);
     return voucher;
   }
+
+  /**
+   * Update a voucher (Admin only)
+   * @param {ObjectId} voucherId - Voucher ID to update
+   * @param {Object} updateData - Validated update data
+   * @returns {Promise<Object>} Updated voucher
+   */
+  async updateVoucherAdmin(voucherId, updateData) {
+    const voucher = await Voucher.findByIdAndUpdate(
+      voucherId,
+      { ...updateData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+    return voucher;
+  }
 }
 
 module.exports = new VoucherService();

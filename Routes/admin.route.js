@@ -12,6 +12,7 @@ const {
   validateGetProductById,
 } = require('../Middlewares/validation.middleware');
 const { validateCreateVoucherAdmin } = require('../Middlewares/voucher-validation.middleware');
+const { validateUpdateVoucherAdmin } = require('../Middlewares/voucher-validation.middleware');
 const { getUsers, updateUser } = require('../Controllers/user.controller');
 const { createCategory, updateCategory } = require('../Controllers/category.controller');
 const {
@@ -66,6 +67,13 @@ router.post(
   verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
   validateCreateVoucherAdmin,
   voucherController.createVoucherAdmin
+);
+
+router.patch(
+  '/vouchers/:id',
+  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
+  validateUpdateVoucherAdmin,
+  voucherController.updateVoucherAdmin
 );
 
 module.exports = router;
