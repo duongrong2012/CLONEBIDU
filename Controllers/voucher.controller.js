@@ -44,6 +44,17 @@ class VoucherController {
     const voucher = await voucherService.updateVoucherAdmin(voucherId, updateData);
     res.json(response.success('Voucher updated successfully', voucher));
   });
+
+  /**
+   * Update a voucher (Seller only)
+   * @route PATCH /buyer/vouchers/:id
+   * @access Seller
+   */
+  updateVoucherSeller = catchAsync(async (req, res) => {
+    const { voucherId, updateData } = req.validatedData;
+    const voucher = await voucherService.updateVoucherSeller(voucherId, updateData);
+    res.json(response.success('Voucher updated successfully', voucher));
+  });
 }
 
 module.exports = new VoucherController();
