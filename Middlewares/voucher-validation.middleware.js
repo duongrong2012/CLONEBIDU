@@ -131,7 +131,8 @@ const commonValidations = {
       .withMessage('Field type must be one of: ' + Object.values(VOUCHER_TYPE).join(', ')),
   ],
 
-  discountValue: [
+  // Split discountValue into 2 rules: required (create) and optional (update)
+  discountValueRequired: [
     body('discountValue')
       .exists()
       .withMessage('Field discountValue is required.')
@@ -150,7 +151,30 @@ const commonValidations = {
         if (type === VOUCHER_TYPE.PERCENTAGE && value > 100) {
           throw new Error('Percentage discount cannot exceed 100%.');
         }
-        if (type === VOUCHER_TYPE.FIXED && value > 1000000000) {
+        if (type === VOUCHER_TYPE.FIXED && value > 1_000_000_000) {
+          throw new Error('Fixed discount cannot exceed 1,000,000,000.');
+        }
+        return true;
+      }),
+  ],
+  discountValueOptional: [
+    body('discountValue')
+      .optional()
+      .bail()
+      .isFloat({ min: 0.01 })
+      .withMessage('Field discountValue must be a positive number.')
+      .bail()
+      .custom((value, { req }) => {
+        const type = req.body.type;
+        // If no type (update), skip, let custom validator handle
+        if (!type) return true;
+        if (!Object.values(VOUCHER_TYPE).includes(type)) {
+          throw new Error('Invalid or missing type — cannot validate discountValue.');
+        }
+        if (type === VOUCHER_TYPE.PERCENTAGE && value > 100) {
+          throw new Error('Percentage discount cannot exceed 100%.');
+        }
+        if (type === VOUCHER_TYPE.FIXED && value > 1_000_000_000) {
           throw new Error('Fixed discount cannot exceed 1,000,000,000.');
         }
         return true;
@@ -248,11 +272,73 @@ const createDateValidations = (includeBusinessRules = false, isOptional = false)
 
 // Helper function to make validations optional
 const makeOptional = validations => {
-  return validations.map(validation => {
-    if (validation.optional) return validation;
-    return validation.optional();
-  });
+  return validations.map(validation => validation.optional());
 };
+
+// Custom rule: If type is present, discountValue must also be present
+const requireDiscountIfTypeUpdated = body('type').custom((value, { req }) => {
+  if (value !== undefined && req.body.discountValue === undefined) {
+    throw new Error('Field discountValue is required when type is updated.');
+  }
+  return true;
+});
+
+// Custom rule: If discountValue is updated without updating type, validate discountValue based on current voucher type
+const validateDiscountValueWithCurrentType = (_isAdmin = false) =>
+  body('discountValue').custom(async (value, { req }) => {
+    // Only apply when updating (has param id)
+    // If client sends type, another rule already handles it
+    // If discountValue is not sent, skip
+    // Get voucher from DB
+    if (!req.params || !req.params.id) return true;
+    // If client gửi type thì đã có rule khác xử lý
+    if (req.body.type !== undefined) return true;
+    // Nếu không gửi discountValue thì bỏ qua
+    if (value === undefined) return true;
+    // Lấy voucher từ DB
+    const voucher = await Voucher.findById(req.params.id);
+    if (!voucher) throw new Error('Voucher not found for discountValue validation.');
+    const type = voucher.type;
+    if (type === VOUCHER_TYPE.PERCENTAGE && value > 100) {
+      throw new Error('Percentage discount cannot exceed 100%.');
+    }
+    if (type === VOUCHER_TYPE.FIXED && value > 1_000_000_000) {
+      throw new Error('Fixed discount cannot exceed 1,000,000,000.');
+    }
+    return true;
+  });
+
+/**
+ * Enforce business rules for updating voucher based on time
+ * - If voucher has started, only allow isActive changes
+ * - If not started, any changes will set voucher status to PENDING
+ * @param {Object} voucher - voucher document
+ * @param {Object} filteredData - object containing fields client wants to update
+ * @param {Array} errors - error array to push violations into
+ * @param {Object} VOUCHER_STATUS - constant status
+ */
+function enforceVoucherUpdateTimeRules(voucher, filteredData, errors, VOUCHER_STATUS) {
+  const now = new Date();
+  const voucherStartDate = new Date(voucher.startDate);
+  const isVoucherStarted = now >= voucherStartDate;
+
+  if (isVoucherStarted) {
+    const allowedFieldsForStartedVoucher = ['isActive'];
+    const attemptedChanges = Object.keys(filteredData);
+    const disallowedChanges = attemptedChanges.filter(
+      field => !allowedFieldsForStartedVoucher.includes(field)
+    );
+    if (disallowedChanges.length > 0) {
+      errors.push({
+        field: 'general',
+        message: `Cannot update fields: ${disallowedChanges.join(', ')}. Voucher has already started. Only isActive can be modified.`,
+      });
+    }
+  } else {
+    // If voucher has not started, any changes will set voucher status to PENDING
+    filteredData.status = VOUCHER_STATUS.PENDING;
+  }
+}
 
 /**
  * Middleware to validate create voucher request for ADMIN only using express-validator
@@ -265,7 +351,7 @@ const validateCreateVoucherAdmin = [
   // Common validations
   ...commonValidations.code,
   ...commonValidations.type,
-  ...commonValidations.discountValue,
+  ...commonValidations.discountValueRequired,
   ...createDateValidations(true), // Include business rules for admin
   ...commonValidations.quantity,
   ...commonValidations.optionalFields,
@@ -473,7 +559,7 @@ const validateCreateVoucherSeller = [
   // Common validations
   ...commonValidations.code,
   ...commonValidations.type,
-  ...commonValidations.discountValue,
+  ...commonValidations.discountValueRequired,
   ...createDateValidations(true), // No business rules for seller
   ...commonValidations.quantity,
   ...commonValidations.optionalFields,
@@ -659,7 +745,9 @@ const validateUpdateVoucherAdmin = [
   // Optional fields validation (all fields are optional for update)
   // Reuse common validations but make them optional
   ...makeOptional(commonValidations.type),
-  ...makeOptional(commonValidations.discountValue),
+  ...commonValidations.discountValueOptional,
+  requireDiscountIfTypeUpdated,
+  validateDiscountValueWithCurrentType(true),
   ...createDateValidations(true, true), // Include business rules and make optional
   ...makeOptional(commonValidations.quantity),
   ...makeOptional(commonValidations.optionalFields),
@@ -838,6 +926,12 @@ const validateUpdateVoucherAdmin = [
       return next(new AppError('Validation failed', 400, errors));
     }
 
+    // Apply voucher update time rules using reusable function
+    enforceVoucherUpdateTimeRules(req.voucher, req.filteredData, errors, VOUCHER_STATUS);
+    if (errors.length > 0) {
+      return next(new AppError('Validation failed', 400, errors));
+    }
+
     // Normalize data for controller
     const {
       type,
@@ -880,8 +974,233 @@ const validateUpdateVoucherAdmin = [
   },
 ];
 
+/**
+ * Validate update voucher for seller
+ * Business rules:
+ * - Only seller can update their own vouchers
+ * - Cannot update voucher code
+ * - Cannot update status (only admin can update status)
+ * - Cannot update source
+ * - Cannot update applicableSellers (always stays as seller's own ID)
+ * - Cannot update createdBy
+ * - If valid, assign req.validatedData for controller
+ */
+const validateUpdateVoucherSeller = [
+  // Validate voucher ID parameter from path
+  param('id')
+    .exists()
+    .withMessage('Voucher ID is required.')
+    .bail()
+    .isString()
+    .withMessage('Voucher ID must be a string.')
+    .bail()
+    .custom(value => {
+      if (!mongoose.Types.ObjectId.isValid(value)) {
+        throw new Error('Invalid voucher ID format.');
+      }
+      return true;
+    }),
+
+  // Optional fields validation (all fields are optional for update)
+  // Reuse common validations but make them optional
+  ...makeOptional(commonValidations.type),
+  ...commonValidations.discountValueOptional,
+  requireDiscountIfTypeUpdated,
+  validateDiscountValueWithCurrentType(false),
+  ...createDateValidations(false, true), // No business rules for seller, make optional
+  ...makeOptional(commonValidations.quantity),
+  ...makeOptional(commonValidations.optionalFields),
+
+  // Note: applicableSellers is NOT allowed for seller updates
+  ...createArrayValidation('applicableUsers', 'user'),
+  ...createArrayValidation('applicableProducts', 'product'),
+  ...createArrayValidation('applicableCategories', 'category'),
+  ...createBooleanValidation('isActive'),
+  ...createBooleanValidation('isPublic'),
+
+  // Check for validation errors and format them
+  (req, res, next) => {
+    const errors = validationResult(req);
+    let allErrors = [];
+
+    // Add express-validator errors
+    if (!errors.isEmpty()) {
+      allErrors = errors.array().map(err => ({
+        field: err.path,
+        message: err.msg,
+      }));
+    }
+
+    // Check for disallowed fields (non-DB validation)
+    const allowedFields = [
+      'type',
+      'discountValue',
+      'startDate',
+      'endDate',
+      'quantity',
+      'description',
+      'minOrderValue',
+      'maxDiscount',
+      'usageLimitPerUser',
+      'applicableUsers',
+      'applicableProducts',
+      'applicableCategories',
+      'isActive',
+      'isPublic',
+    ];
+    const disallowedFields = Object.keys(req.body).filter(f => !allowedFields.includes(f));
+    if (disallowedFields.length > 0) {
+      disallowedFields.forEach(f => {
+        allErrors.push({ field: f, message: `Field ${f} is not allowed.` });
+      });
+    }
+
+    if (allErrors.length > 0) {
+      return next(new AppError('Validation failed', 400, allErrors));
+    }
+
+    // Normalize data for DB validation step
+    req.filteredData = {};
+    allowedFields.forEach(f => {
+      if (req.body[f] !== undefined) req.filteredData[f] = req.body[f];
+    });
+    next();
+  },
+
+  // Business validations with DB queries
+  async (req, res, next) => {
+    const errors = [];
+    const { applicableUsers, applicableProducts, applicableCategories } = req.filteredData;
+    const id = req.params.id;
+    const sellerId = req.user._id;
+
+    // Check if voucher exists and belongs to seller
+    try {
+      const voucher = await Voucher.findById(id);
+      if (!voucher) {
+        return next(new AppError('Voucher not found', 404));
+      }
+
+      // Check if voucher is created by this seller
+      if (voucher.createdBy.toString() !== sellerId.toString()) {
+        return next(new AppError('You can only update your own vouchers', 403));
+      }
+
+      // Check if voucher is seller-created (source: SHOP)
+      if (voucher.source !== VOUCHER_SOURCE.SHOP) {
+        return next(new AppError('Only seller-created vouchers can be updated', 403));
+      }
+
+      // Store voucher in request for controller use
+      req.voucher = voucher;
+    } catch {
+      return next(new AppError('Error finding voucher', 500));
+    }
+
+    // Validate ObjectId format for all reference fields (non-DB validation)
+    const objectIdFields = [
+      { field: 'applicableUsers', value: applicableUsers },
+      { field: 'applicableProducts', value: applicableProducts },
+      { field: 'applicableCategories', value: applicableCategories },
+    ];
+
+    validateObjectIdFields(objectIdFields, errors);
+
+    if (errors.length > 0) {
+      return next(new AppError('Validation failed', 400, errors));
+    }
+
+    // Validate entity existence using helper function
+    const entityValidations = [
+      {
+        ids: applicableUsers,
+        Model: User,
+        fieldName: 'applicableUsers',
+        errorMessage: 'Some users do not exist',
+      },
+      {
+        ids: applicableProducts,
+        Model: Product,
+        fieldName: 'applicableProducts',
+        errorMessage: 'Some products do not exist',
+      },
+      {
+        ids: applicableCategories,
+        Model: Category,
+        fieldName: 'applicableCategories',
+        errorMessage: 'Some categories do not exist',
+      },
+    ];
+
+    // Run all entity validations in parallel
+    const validationResults = await Promise.all(
+      entityValidations.map(validation =>
+        validateEntityExistence(
+          validation.ids,
+          validation.Model,
+          validation.fieldName,
+          validation.errorMessage,
+          validation.additionalQuery
+        )
+      )
+    );
+
+    // Add non-null validation results to errors
+    validationResults.forEach(result => {
+      if (result) errors.push(result);
+    });
+
+    if (errors.length > 0) {
+      return next(new AppError('Validation failed', 400, errors));
+    }
+
+    // Apply voucher update time rules using reusable function
+    enforceVoucherUpdateTimeRules(req.voucher, req.filteredData, errors, VOUCHER_STATUS);
+    if (errors.length > 0) {
+      return next(new AppError('Validation failed', 400, errors));
+    }
+
+    // Normalize data for controller
+    const {
+      type,
+      discountValue,
+      maxDiscount,
+      startDate,
+      endDate,
+      quantity,
+      minOrderValue,
+      usageLimitPerUser,
+      isActive,
+      isPublic,
+    } = req.body;
+
+    req.validatedData = {
+      voucherId: id,
+      updateData: {
+        ...(type && { type }),
+        ...(discountValue && { discountValue }),
+        ...(maxDiscount !== undefined && { maxDiscount }),
+        ...(startDate && { startDate: new Date(startDate) }),
+        ...(endDate && { endDate: new Date(endDate) }),
+        ...(quantity && { quantity }),
+        ...(minOrderValue !== undefined && { minOrderValue }),
+        ...(usageLimitPerUser && { usageLimitPerUser }),
+        ...(isActive !== undefined && { isActive }),
+        ...(isPublic !== undefined && { isPublic }),
+        ...(applicableUsers && { applicableUsers }),
+        ...(applicableProducts && { applicableProducts }),
+        ...(applicableCategories && { applicableCategories }),
+        ...(req.filteredData.status && { status: req.filteredData.status }),
+      },
+    };
+
+    next();
+  },
+];
+
 module.exports = {
   validateCreateVoucherAdmin,
   validateCreateVoucherSeller,
   validateUpdateVoucherAdmin,
+  validateUpdateVoucherSeller,
 };
