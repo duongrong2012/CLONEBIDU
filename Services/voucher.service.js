@@ -116,6 +116,84 @@ class VoucherService {
     };
     return Voucher.paginate(filter, options);
   }
+
+  /**
+   * Get vouchers for seller (only own vouchers)
+   * @param {Object} query - Query params
+   * @param {string} sellerId - Current seller id
+   * @returns {Promise<Object>} Paginated vouchers
+   */
+  async getVouchersSeller(query, sellerId) {
+    const { page, limit, sortBy, sortOrder } = validationUtils.validatePagination(query);
+
+    const {
+      code,
+      status,
+      type,
+      source,
+      isActive,
+      isPublic,
+      minOrderValue,
+      maxDiscount,
+      discountValue,
+      quantity,
+      startDate,
+      endDate,
+    } = query;
+
+    // Build common filter for both branches
+    const commonFilters = [];
+    if (code) commonFilters.push({ code: { $regex: code, $options: 'i' } });
+    if (status) commonFilters.push({ status });
+    if (type) commonFilters.push({ type });
+    if (isActive !== undefined) commonFilters.push({ isActive });
+    if (isPublic !== undefined) commonFilters.push({ isPublic });
+    if (minOrderValue !== undefined)
+      commonFilters.push({ minOrderValue: { $gte: Number(minOrderValue) } });
+    if (maxDiscount !== undefined) commonFilters.push({ maxDiscount: Number(maxDiscount) });
+    if (discountValue !== undefined) commonFilters.push({ discountValue: Number(discountValue) });
+    if (quantity !== undefined) commonFilters.push({ quantity: Number(quantity) });
+    if (startDate) commonFilters.push({ startDate: { $gte: new Date(startDate) } });
+    if (endDate) commonFilters.push({ endDate: { $lte: new Date(endDate) } });
+
+    // Branch A: seller-owned vouchers (SHOP)
+    const branchShop = {
+      source: 'SHOP',
+      createdBy: sellerId,
+      ...(commonFilters.length ? { $and: commonFilters } : {}),
+    };
+
+    // Branch B: system vouchers applicable to this seller (SYSTEM with applicableSellers contains sellerId)
+    const branchSystem = {
+      source: 'SYSTEM',
+      applicableSellers: { $in: [sellerId] },
+      ...(commonFilters.length ? { $and: commonFilters } : {}),
+    };
+
+    // If client filters source, restrict branches accordingly
+    let orBranches = [];
+    if (source === 'SHOP') orBranches = [branchShop];
+    else if (source === 'SYSTEM') orBranches = [branchSystem];
+    else orBranches = [branchShop, branchSystem];
+
+    const filter = { $or: orBranches };
+
+    const options = {
+      page,
+      limit,
+      sort: { [sortBy]: sortOrder },
+      lean: true,
+      customLabels: {
+        docs: 'data',
+        totalDocs: 'total',
+        totalPages: 'totalPages',
+        page: 'page',
+        limit: 'limit',
+      },
+    };
+
+    return Voucher.paginate(filter, options);
+  }
 }
 
 module.exports = new VoucherService();
