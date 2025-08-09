@@ -1,4 +1,5 @@
 const Voucher = require('../Models/voucher.model');
+const validationUtils = require('../Utils/validation.utils');
 
 /**
  * Service class for voucher business logic
@@ -62,6 +63,58 @@ class VoucherService {
       { new: true, runValidators: true }
     );
     return voucher;
+  }
+
+  /**
+   * Get vouchers for admin with filter, pagination, sort
+   * @param {Object} query - Query params (page, limit, code, status, type, startDate, endDate, sortBy, sortOrder)
+   * @returns {Promise<Object>} Paginated vouchers
+   */
+  async getVouchersAdmin(query) {
+    const {
+      code,
+      status,
+      type,
+      startDate,
+      endDate,
+      source,
+      createdBy,
+      isActive,
+      isPublic,
+      minOrderValue,
+      maxDiscount,
+      discountValue,
+      quantity,
+    } = query;
+    const { page, limit, sortBy, sortOrder } = validationUtils.validatePagination(query);
+    const filter = {};
+    if (code) filter.code = { $regex: code, $options: 'i' };
+    if (status) filter.status = status;
+    if (type) filter.type = type;
+    if (source) filter.source = source;
+    if (startDate) filter.startDate = { ...(filter.startDate || {}), $gte: new Date(startDate) };
+    if (endDate) filter.endDate = { ...(filter.endDate || {}), $lte: new Date(endDate) };
+    if (createdBy) filter.createdBy = createdBy;
+    if (isActive !== undefined) filter.isActive = isActive;
+    if (isPublic !== undefined) filter.isPublic = isPublic;
+    if (minOrderValue !== undefined) filter.minOrderValue = { $gte: Number(minOrderValue) };
+    if (maxDiscount !== undefined) filter.maxDiscount = Number(maxDiscount);
+    if (discountValue !== undefined) filter.discountValue = Number(discountValue);
+    if (quantity !== undefined) filter.quantity = Number(quantity);
+    const options = {
+      page,
+      limit,
+      sort: { [sortBy]: sortOrder },
+      lean: true,
+      customLabels: {
+        docs: 'data',
+        totalDocs: 'total',
+        totalPages: 'totalPages',
+        page: 'page',
+        limit: 'limit',
+      },
+    };
+    return Voucher.paginate(filter, options);
   }
 }
 
