@@ -55,6 +55,16 @@ class VoucherController {
     const voucher = await voucherService.updateVoucherSeller(voucherId, updateData);
     res.json(response.success('Voucher updated successfully', voucher));
   });
+
+  /**
+   * Get vouchers for admin (with filter, pagination)
+   * @route GET /admin/vouchers
+   * @access Admin, Super Admin
+   */
+  getVouchersAdmin = catchAsync(async (req, res) => {
+    const result = await voucherService.getVouchersAdmin(req.query);
+    res.json(response.success('Vouchers retrieved successfully', response.groupPagination(result)));
+  });
 }
 
 module.exports = new VoucherController();

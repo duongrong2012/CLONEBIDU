@@ -13,6 +13,7 @@ const {
 } = require('../Middlewares/validation.middleware');
 const { validateCreateVoucherAdmin } = require('../Middlewares/voucher-validation.middleware');
 const { validateUpdateVoucherAdmin } = require('../Middlewares/voucher-validation.middleware');
+const { validateGetVouchersAdmin } = require('../Middlewares/voucher-validation.middleware');
 const { getUsers, updateUser } = require('../Controllers/user.controller');
 const { createCategory, updateCategory } = require('../Controllers/category.controller');
 const {
@@ -62,6 +63,13 @@ router.patch(
 );
 
 // Voucher routes
+router.get(
+  '/vouchers',
+  verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
+  validateGetVouchersAdmin,
+  voucherController.getVouchersAdmin
+);
+
 router.post(
   '/vouchers',
   verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
