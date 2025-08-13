@@ -19,11 +19,7 @@ const provinceValidation = require('../Middlewares/province-validation');
 const provinceController = require('../Controllers/province.controller');
 const wardValidation = require('../Middlewares/ward-validation');
 const wardController = require('../Controllers/ward.controller');
-const {
-  validateCreateVoucherSeller,
-  validateUpdateVoucherSeller,
-  validateGetVouchersSeller,
-} = require('../Middlewares/voucher-validation.middleware');
+const { validateGetVouchersBuyer } = require('../Middlewares/voucher-validation.middleware');
 const voucherController = require('../Controllers/voucher.controller');
 
 // Protected routes
@@ -64,28 +60,12 @@ router.get('/cart', verifyToken(), validateGetCart, cartController.getCart);
 router.get('/provinces', provinceValidation, provinceController.getProvinces);
 router.get('/wards', wardValidation, wardController.getWards);
 
-// Seller create voucher
-router.post(
-  '/vouchers',
-  verifyToken(['SELLER']),
-  validateCreateVoucherSeller,
-  voucherController.createVoucherSeller
-);
-
-// Seller update voucher
-router.patch(
-  '/vouchers/:id',
-  verifyToken(['SELLER']),
-  validateUpdateVoucherSeller,
-  voucherController.updateVoucherSeller
-);
-
-// Seller get vouchers (own vouchers only)
+// Buyer get applicable vouchers
 router.get(
   '/vouchers',
-  verifyToken(['SELLER']),
-  validateGetVouchersSeller,
-  voucherController.getVouchersSeller
+  verifyToken(),
+  validateGetVouchersBuyer,
+  voucherController.getVouchersBuyer
 );
 
 module.exports = router;

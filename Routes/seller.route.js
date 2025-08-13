@@ -2,6 +2,7 @@ const express = require('express');
 const { verifyToken } = require('../Middlewares/auth.middleware');
 const { USER_ROLES } = require('../Utils/constant');
 const sellerController = require('../Controllers/seller.controller');
+const voucherController = require('../Controllers/voucher.controller');
 const {
   validateSellerRequest,
   validatePaginationQuery,
@@ -9,6 +10,11 @@ const {
   validateProcessSellerRequest,
   validateCancelSellerRequest,
 } = require('../Middlewares/validation.middleware');
+const {
+  validateCreateVoucherSeller,
+  validateUpdateVoucherSeller,
+  validateGetVouchersSeller,
+} = require('../Middlewares/voucher-validation.middleware');
 const router = express.Router();
 
 // Routes for buyers
@@ -49,6 +55,28 @@ router.patch(
   verifyToken([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]),
   validateProcessSellerRequest(),
   sellerController.processSellerRequest
+);
+
+// Seller voucher routes
+router.post(
+  '/vouchers',
+  verifyToken([USER_ROLES.SELLER]),
+  validateCreateVoucherSeller,
+  voucherController.createVoucherSeller
+);
+
+router.patch(
+  '/vouchers/:id',
+  verifyToken([USER_ROLES.SELLER]),
+  validateUpdateVoucherSeller,
+  voucherController.updateVoucherSeller
+);
+
+router.get(
+  '/vouchers',
+  verifyToken([USER_ROLES.SELLER]),
+  validateGetVouchersSeller,
+  voucherController.getVouchersSeller
 );
 
 module.exports = router;

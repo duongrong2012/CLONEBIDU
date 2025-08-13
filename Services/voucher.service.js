@@ -1,5 +1,6 @@
 const Voucher = require('../Models/voucher.model');
 const validationUtils = require('../Utils/validation.utils');
+const { VOUCHER_STATUS } = require('../Utils/constant');
 
 /**
  * Service class for voucher business logic
@@ -177,6 +178,63 @@ class VoucherService {
     else orBranches = [branchShop, branchSystem];
 
     const filter = { $or: orBranches };
+
+    const options = {
+      page,
+      limit,
+      sort: { [sortBy]: sortOrder },
+      lean: true,
+      customLabels: {
+        docs: 'data',
+        totalDocs: 'total',
+        totalPages: 'totalPages',
+        page: 'page',
+        limit: 'limit',
+      },
+    };
+
+    return Voucher.paginate(filter, options);
+  }
+
+  /**
+   * Get vouchers for buyer (only approved & active vouchers applicable to this buyer)
+   * @param {Object} query - Query params
+   * @param {string} buyerId - Current buyer id
+   * @returns {Promise<Object>} Paginated vouchers
+   */
+  async getVouchersBuyer(query, buyerId) {
+    const { page, limit, sortBy, sortOrder } = validationUtils.validatePagination(query);
+
+    const {
+      code,
+      type,
+      source,
+      isPublic,
+      minOrderValue,
+      maxDiscount,
+      discountValue,
+      quantity,
+      startDate,
+      endDate,
+    } = query;
+
+    // Enforce only active and approved vouchers
+    const filter = {
+      isActive: true,
+      status: VOUCHER_STATUS.APPROVED,
+      $or: [{ applicableUsers: { $size: 0 } }, { applicableUsers: { $in: [buyerId] } }],
+    };
+
+    if (code) filter.code = { $regex: code, $options: 'i' };
+    if (type) filter.type = type;
+    if (source) filter.source = source;
+    if (isPublic !== undefined) filter.isPublic = isPublic;
+    if (minOrderValue !== undefined) filter.minOrderValue = { $gte: Number(minOrderValue) };
+    if (maxDiscount !== undefined) filter.maxDiscount = Number(maxDiscount);
+    if (discountValue !== undefined) filter.discountValue = Number(discountValue);
+    if (quantity !== undefined) filter.quantity = Number(quantity);
+    if (startDate) filter.startDate = { ...(filter.startDate || {}), $gte: new Date(startDate) };
+    if (endDate) filter.endDate = { ...(filter.endDate || {}), $lte: new Date(endDate) };
 
     const options = {
       page,

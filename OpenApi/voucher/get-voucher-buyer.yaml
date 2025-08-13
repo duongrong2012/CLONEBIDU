@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
-  title: Get Vouchers (Seller)
-  description: API for sellers to get their own vouchers with filter and pagination
+  title: Get Applicable Vouchers (Buyer)
+  description: API for buyers to get vouchers applicable to themselves with filter and pagination. Only active (isActive=true) and approved (status=APPROVED) vouchers are returned.
   version: 1.0.0
 
 paths:
@@ -9,7 +9,7 @@ paths:
     get:
       tags:
         - Voucher
-      summary: Get vouchers for the current seller (own vouchers only)
+      summary: Get vouchers applicable to the current buyer
       security:
         - BearerAuth: []
       parameters:
@@ -18,12 +18,7 @@ paths:
           schema:
             type: string
           description: Filter by voucher code (partial, case-insensitive)
-        - in: query
-          name: status
-          schema:
-            type: string
-            enum: [PENDING, APPROVED, REJECTED]
-          description: Filter by voucher status
+        
         - in: query
           name: type
           schema:
@@ -36,11 +31,7 @@ paths:
             type: string
             enum: [SYSTEM, SHOP]
           description: Filter by voucher source (optional)
-        - in: query
-          name: isActive
-          schema:
-            type: boolean
-          description: Filter by active status
+        
         - in: query
           name: isPublic
           schema:
@@ -50,7 +41,7 @@ paths:
           name: minOrderValue
           schema:
             type: number
-          description: Filter by minOrderValue >= value
+          description: Filter vouchers with minOrderValue >= this value
         - in: query
           name: maxDiscount
           schema:
@@ -220,7 +211,7 @@ components:
           example: null
         source:
           type: string
-          example: SHOP
+          example: SYSTEM
         createdBy:
           type: string
           example: 64e8b7c2f1a2b3c4d5e6f7a1

@@ -75,6 +75,16 @@ class VoucherController {
     const result = await voucherService.getVouchersSeller(req.query, req.user._id);
     res.json(response.success('Vouchers retrieved successfully', response.groupPagination(result)));
   });
+
+  /**
+   * Get vouchers for buyer (only vouchers applicable to this buyer)
+   * @route GET /buyer/vouchers/available
+   * @access Buyer
+   */
+  getVouchersBuyer = catchAsync(async (req, res) => {
+    const result = await voucherService.getVouchersBuyer(req.query, req.user._id);
+    res.json(response.success('Vouchers retrieved successfully', response.groupPagination(result)));
+  });
 }
 
 module.exports = new VoucherController();

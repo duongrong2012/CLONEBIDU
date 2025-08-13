@@ -18,7 +18,7 @@ info:
     - Only seller-created vouchers (source: SHOP) can be updated
 
 paths:
-  /buyer/vouchers/{id}:
+  /seller/vouchers/{id}:
     patch:
       tags:
         - Voucher
