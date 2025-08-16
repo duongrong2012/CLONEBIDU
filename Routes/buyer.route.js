@@ -22,6 +22,7 @@ const wardController = require('../Controllers/ward.controller');
 const {
   validateCreateVoucherSeller,
   validateUpdateVoucherSeller,
+  validateGetVouchersSeller,
 } = require('../Middlewares/voucher-validation.middleware');
 const voucherController = require('../Controllers/voucher.controller');
 
@@ -77,6 +78,14 @@ router.patch(
   verifyToken(['SELLER']),
   validateUpdateVoucherSeller,
   voucherController.updateVoucherSeller
+);
+
+// Seller get vouchers (own vouchers only)
+router.get(
+  '/vouchers',
+  verifyToken(['SELLER']),
+  validateGetVouchersSeller,
+  voucherController.getVouchersSeller
 );
 
 module.exports = router;
