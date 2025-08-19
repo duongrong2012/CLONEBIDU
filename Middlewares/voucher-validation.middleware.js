@@ -1304,6 +1304,54 @@ const validateGetVouchersSeller = [
   },
 ];
 
+const validateGetVouchersBuyer = [
+  query('code').optional().isString().withMessage('Code must be a string.'),
+  // Remove status/isActive from buyer query as they are enforced in service
+  query('type').optional().isIn(Object.values(VOUCHER_TYPE)).withMessage('Type is invalid.'),
+  query('source').optional().isIn(['SYSTEM', 'SHOP']).withMessage('Source is invalid.'),
+  query('isPublic').optional().isBoolean().withMessage('isPublic must be boolean.').toBoolean(),
+  query('minOrderValue').optional().isNumeric().withMessage('minOrderValue must be a number.'),
+  query('maxDiscount').optional().isNumeric().withMessage('maxDiscount must be a number.'),
+  query('discountValue').optional().isNumeric().withMessage('discountValue must be a number.'),
+  query('quantity').optional().isInt().withMessage('quantity must be an integer.'),
+  query('startDate')
+    .optional()
+    .isISO8601()
+    .withMessage('startDate must be a valid ISO8601 date string.'),
+  query('endDate')
+    .optional()
+    .isISO8601()
+    .withMessage('endDate must be a valid ISO8601 date string.'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const formatted = errors.array().map(err => ({ field: err.path, message: err.msg }));
+      return next(new AppError('Validation failed', 400, formatted));
+    }
+    const allowedFields = [
+      'code',
+      'type',
+      'source',
+      'isPublic',
+      'minOrderValue',
+      'maxDiscount',
+      'discountValue',
+      'quantity',
+      'startDate',
+      'endDate',
+      'page',
+      'limit',
+      'sortBy',
+      'sortOrder',
+    ];
+    req.query = Object.fromEntries(
+      Object.entries(req.query).filter(([key]) => allowedFields.includes(key))
+    );
+    // Service will enforce scope and status/isActive
+    next();
+  },
+];
+
 module.exports = {
   validateCreateVoucherAdmin,
   validateCreateVoucherSeller,
@@ -1311,4 +1359,5 @@ module.exports = {
   validateUpdateVoucherSeller,
   validateGetVouchersAdmin,
   validateGetVouchersSeller,
+  validateGetVouchersBuyer,
 };

@@ -22,7 +22,7 @@ info:
     - Source is automatically set to SHOP
 
 paths:
-  /buyer/vouchers:
+  /seller/vouchers:
     post:
       tags:
         - Voucher
