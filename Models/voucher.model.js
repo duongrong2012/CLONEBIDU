@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
-const { VOUCHER_STATUS, VOUCHER_TYPE, VOUCHER_SOURCE } = require('../Utils/constant');
+const {
+  VOUCHER_STATUS,
+  VOUCHER_TYPE,
+  VOUCHER_SOURCE,
+  VOUCHER_TARGET,
+} = require('../Utils/constant');
 
 /**
  * Voucher Schema
@@ -45,6 +50,12 @@ const voucherSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0.01,
+    },
+    target: {
+      type: String,
+      enum: Object.values(VOUCHER_TARGET),
+      required: true,
+      default: VOUCHER_TARGET.ORDER_DISCOUNT,
     },
     maxDiscount: {
       type: Number,

@@ -21,6 +21,8 @@ const wardValidation = require('../Middlewares/ward-validation');
 const wardController = require('../Controllers/ward.controller');
 const { validateGetVouchersBuyer } = require('../Middlewares/voucher-validation.middleware');
 const voucherController = require('../Controllers/voucher.controller');
+const orderController = require('../Controllers/order.controller');
+const { validateOrderPreview } = require('../Middlewares/order-validation');
 
 // Protected routes
 router.get('/profile', verifyToken(), buyerController.getProfile);
@@ -58,6 +60,9 @@ router.post('/cart', verifyToken(), validateAddCart, cartController.addCart);
 router.get('/cart', verifyToken(), validateGetCart, cartController.getCart);
 
 router.get('/provinces', provinceValidation, provinceController.getProvinces);
+
+// Order preview (compute from FE-provided items)
+router.post('/order-preview', verifyToken(), validateOrderPreview, orderController.preview);
 router.get('/wards', wardValidation, wardController.getWards);
 
 // Buyer get applicable vouchers

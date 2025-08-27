@@ -76,6 +76,7 @@ class VoucherService {
       code,
       status,
       type,
+      target,
       startDate,
       endDate,
       source,
@@ -93,6 +94,7 @@ class VoucherService {
     if (status) filter.status = status;
     if (type) filter.type = type;
     if (source) filter.source = source;
+    if (target) filter.target = target;
     if (startDate) filter.startDate = { ...(filter.startDate || {}), $gte: new Date(startDate) };
     if (endDate) filter.endDate = { ...(filter.endDate || {}), $lte: new Date(endDate) };
     if (createdBy) filter.createdBy = createdBy;
@@ -131,6 +133,7 @@ class VoucherService {
       code,
       status,
       type,
+      target,
       source,
       isActive,
       isPublic,
@@ -148,6 +151,7 @@ class VoucherService {
     if (status) commonFilters.push({ status });
     if (type) commonFilters.push({ type });
     if (isActive !== undefined) commonFilters.push({ isActive });
+    if (target) commonFilters.push({ target });
     if (isPublic !== undefined) commonFilters.push({ isPublic });
     if (minOrderValue !== undefined)
       commonFilters.push({ minOrderValue: { $gte: Number(minOrderValue) } });
@@ -208,6 +212,7 @@ class VoucherService {
     const {
       code,
       type,
+      target,
       source,
       isPublic,
       minOrderValue,
@@ -228,6 +233,7 @@ class VoucherService {
     if (code) filter.code = { $regex: code, $options: 'i' };
     if (type) filter.type = type;
     if (source) filter.source = source;
+    if (target) filter.target = target;
     if (isPublic !== undefined) filter.isPublic = isPublic;
     if (minOrderValue !== undefined) filter.minOrderValue = { $gte: Number(minOrderValue) };
     if (maxDiscount !== undefined) filter.maxDiscount = Number(maxDiscount);
