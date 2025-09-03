@@ -61,6 +61,23 @@ This command executes the seeder script located at `seeders/update-product-statu
 
 **Note**: This seeder is safe to run multiple times - it will only update products that need the status field added.
 
+### Backfill Voucher Target (After Adding `target` Field)
+
+If you added the `target` field to the Voucher model (to support `ORDER_DISCOUNT` and `SHIPPING_DISCOUNT`) and need to backfill existing records, run:
+
+```bash
+npm run seed:update-voucher-target
+```
+
+This command executes `seeders/update-voucher-target.js`, which:
+- Finds all vouchers where `target` is missing or null
+- Sets `target = ORDER_DISCOUNT` as the default
+- Verifies the update and prints a short summary
+
+Notes:
+- Safe to run multiple times; only updates vouchers without a `target` field
+- Requires a valid `MONGO_URI` in your `.env`
+
 ## Province Seeder
 
 This project includes a seeder script to import all provinces from `province.json` into the MongoDB `provinces` collection.

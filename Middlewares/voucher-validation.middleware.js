@@ -1,4 +1,10 @@
-const { USER_ROLES, VOUCHER_STATUS, VOUCHER_TYPE, VOUCHER_SOURCE } = require('../Utils/constant');
+const {
+  USER_ROLES,
+  VOUCHER_STATUS,
+  VOUCHER_TYPE,
+  VOUCHER_SOURCE,
+  VOUCHER_TARGET,
+} = require('../Utils/constant');
 const { AppError } = require('../Utils/error.utils');
 const { body, param, validationResult, query } = require('express-validator');
 const Voucher = require('../Models/voucher.model');
@@ -112,6 +118,17 @@ const commonValidations = {
         }
         return true;
       }),
+  ],
+  target: [
+    body('target')
+      .exists()
+      .withMessage('Field target is required.')
+      .bail()
+      .isString()
+      .withMessage('Field target must be a string.')
+      .bail()
+      .isIn(Object.values(VOUCHER_TARGET))
+      .withMessage('Field target must be one of: ' + Object.values(VOUCHER_TARGET).join(', ')),
   ],
 
   type: [
@@ -351,6 +368,7 @@ const validateCreateVoucherAdmin = [
   // Common validations
   ...commonValidations.code,
   ...commonValidations.type,
+  ...commonValidations.target,
   ...commonValidations.discountValueRequired,
   ...createDateValidations(true), // Include business rules for admin
   ...commonValidations.quantity,
@@ -384,6 +402,7 @@ const validateCreateVoucherAdmin = [
     const allowedFields = [
       'code',
       'type',
+      'target',
       'discountValue',
       'startDate',
       'endDate',
@@ -510,6 +529,7 @@ const validateCreateVoucherAdmin = [
     const {
       description,
       type,
+      target,
       discountValue,
       maxDiscount,
       startDate,
@@ -526,6 +546,7 @@ const validateCreateVoucherAdmin = [
       code: code ? code.trim().toUpperCase() : '',
       description: description ? description.trim() : '',
       type,
+      target,
       discountValue,
       maxDiscount: maxDiscount || 0,
       startDate: new Date(startDate),
@@ -559,6 +580,7 @@ const validateCreateVoucherSeller = [
   // Common validations
   ...commonValidations.code,
   ...commonValidations.type,
+  ...commonValidations.target,
   ...commonValidations.discountValueRequired,
   ...createDateValidations(true), // No business rules for seller
   ...commonValidations.quantity,
@@ -580,6 +602,7 @@ const validateCreateVoucherSeller = [
     const allowedFields = [
       'code',
       'type',
+      'target',
       'discountValue',
       'startDate',
       'endDate',
@@ -682,6 +705,7 @@ const validateCreateVoucherSeller = [
     const {
       description: seller_description,
       type: seller_type,
+      target: seller_target,
       discountValue: seller_discountValue,
       maxDiscount: seller_maxDiscount,
       startDate: seller_startDate,
@@ -699,6 +723,7 @@ const validateCreateVoucherSeller = [
       code: code ? code.trim().toUpperCase() : '',
       description: seller_description ? seller_description.trim() : '',
       type: seller_type,
+      target: seller_target,
       discountValue: seller_discountValue,
       maxDiscount: seller_maxDiscount || 0,
       startDate: new Date(seller_startDate),
@@ -745,6 +770,7 @@ const validateUpdateVoucherAdmin = [
   // Optional fields validation (all fields are optional for update)
   // Reuse common validations but make them optional
   ...makeOptional(commonValidations.type),
+  ...makeOptional(commonValidations.target),
   ...commonValidations.discountValueOptional,
   requireDiscountIfTypeUpdated,
   validateDiscountValueWithCurrentType(true),
@@ -800,6 +826,7 @@ const validateUpdateVoucherAdmin = [
     // Check for disallowed fields (non-DB validation)
     const allowedFields = [
       'type',
+      'target',
       'discountValue',
       'startDate',
       'endDate',
@@ -935,6 +962,7 @@ const validateUpdateVoucherAdmin = [
     // Normalize data for controller
     const {
       type,
+      target,
       discountValue,
       maxDiscount,
       startDate,
@@ -952,6 +980,7 @@ const validateUpdateVoucherAdmin = [
       voucherId: id,
       updateData: {
         ...(type && { type }),
+        ...(target && { target }),
         ...(discountValue && { discountValue }),
         ...(maxDiscount !== undefined && { maxDiscount }),
         ...(startDate && { startDate: new Date(startDate) }),
@@ -1004,6 +1033,7 @@ const validateUpdateVoucherSeller = [
   // Optional fields validation (all fields are optional for update)
   // Reuse common validations but make them optional
   ...makeOptional(commonValidations.type),
+  ...makeOptional(commonValidations.target),
   ...commonValidations.discountValueOptional,
   requireDiscountIfTypeUpdated,
   validateDiscountValueWithCurrentType(false),
@@ -1034,6 +1064,7 @@ const validateUpdateVoucherSeller = [
     // Check for disallowed fields (non-DB validation)
     const allowedFields = [
       'type',
+      'target',
       'discountValue',
       'startDate',
       'endDate',
@@ -1163,6 +1194,7 @@ const validateUpdateVoucherSeller = [
     // Normalize data for controller
     const {
       type,
+      target,
       discountValue,
       maxDiscount,
       startDate,
@@ -1178,6 +1210,7 @@ const validateUpdateVoucherSeller = [
       voucherId: id,
       updateData: {
         ...(type && { type }),
+        ...(target && { target }),
         ...(discountValue && { discountValue }),
         ...(maxDiscount !== undefined && { maxDiscount }),
         ...(startDate && { startDate: new Date(startDate) }),
@@ -1203,6 +1236,7 @@ const validateGetVouchersAdmin = [
   query('code').optional().isString().withMessage('Code must be a string.'),
   query('status').optional().isIn(Object.values(VOUCHER_STATUS)).withMessage('Status is invalid.'),
   query('type').optional().isIn(Object.values(VOUCHER_TYPE)).withMessage('Type is invalid.'),
+  query('target').optional().isIn(Object.values(VOUCHER_TARGET)).withMessage('Target is invalid.'),
   query('source').optional().isIn(['SYSTEM', 'SHOP']).withMessage('Source is invalid.'),
   query('createdBy').optional().isMongoId().withMessage('createdBy must be a valid MongoId.'),
   query('isActive').optional().isBoolean().withMessage('isActive must be boolean.').toBoolean(),
@@ -1230,6 +1264,7 @@ const validateGetVouchersAdmin = [
       'code',
       'status',
       'type',
+      'target',
       'source',
       'createdBy',
       'isActive',
@@ -1256,6 +1291,7 @@ const validateGetVouchersSeller = [
   query('code').optional().isString().withMessage('Code must be a string.'),
   query('status').optional().isIn(Object.values(VOUCHER_STATUS)).withMessage('Status is invalid.'),
   query('type').optional().isIn(Object.values(VOUCHER_TYPE)).withMessage('Type is invalid.'),
+  query('target').optional().isIn(Object.values(VOUCHER_TARGET)).withMessage('Target is invalid.'),
   query('source').optional().isIn(['SYSTEM', 'SHOP']).withMessage('Source is invalid.'),
   query('isActive').optional().isBoolean().withMessage('isActive must be boolean.').toBoolean(),
   query('isPublic').optional().isBoolean().withMessage('isPublic must be boolean.').toBoolean(),
@@ -1282,6 +1318,7 @@ const validateGetVouchersSeller = [
       'code',
       'status',
       'type',
+      'target',
       'source',
       'isActive',
       'isPublic',
@@ -1308,6 +1345,7 @@ const validateGetVouchersBuyer = [
   query('code').optional().isString().withMessage('Code must be a string.'),
   // Remove status/isActive from buyer query as they are enforced in service
   query('type').optional().isIn(Object.values(VOUCHER_TYPE)).withMessage('Type is invalid.'),
+  query('target').optional().isIn(Object.values(VOUCHER_TARGET)).withMessage('Target is invalid.'),
   query('source').optional().isIn(['SYSTEM', 'SHOP']).withMessage('Source is invalid.'),
   query('isPublic').optional().isBoolean().withMessage('isPublic must be boolean.').toBoolean(),
   query('minOrderValue').optional().isNumeric().withMessage('minOrderValue must be a number.'),
@@ -1331,6 +1369,7 @@ const validateGetVouchersBuyer = [
     const allowedFields = [
       'code',
       'type',
+      'target',
       'source',
       'isPublic',
       'minOrderValue',

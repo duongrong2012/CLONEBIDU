@@ -1,0 +1,158 @@
+openapi: 3.0.0
+info:
+  title: Order Preview API
+  version: 1.0.0
+  description: Generate an order preview for the authenticated user's current cart.
+
+paths:
+  /buyer/order-preview:
+    post:
+      tags:
+        - Order
+      summary: Get order preview
+      description: Returns items with pricing and totals from provided items, optionally applying vouchers.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: voucherOrderCode
+          schema:
+            type: string
+          required: false
+          description: Optional order voucher code (target=ORDER_DISCOUNT)
+        - in: query
+          name: voucherShippingCode
+          schema:
+            type: string
+          required: false
+          description: Optional shipping voucher code (target=SHIPPING_DISCOUNT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, deliveryLocation, deliveryMethod]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [product, quantity]
+                    properties:
+                      product:
+                        type: string
+                        description: Product id
+                      quantity:
+                        type: integer
+                        minimum: 1
+                deliveryLocation:
+                  type: object
+                  description: Delivery location object (e.g., coordinates)
+                deliveryMethod:
+                  type: string
+                  description: "Delivery method enum (e.g., STANDARD, EXPRESS)"
+      responses:
+        '200':
+          description: Order preview generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Order preview generated successfully
+                  payload:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            productId:
+                              type: string
+                            name:
+                              type: string
+                            price:
+                              type: number
+                            discountPrice:
+                              type: number
+                              nullable: true
+                            unitPrice:
+                              type: number
+                            quantity:
+                              type: integer
+                            itemTotal:
+                              type: number
+                            sellerId:
+                              type: string
+                            categories:
+                              type: array
+                              items:
+                                type: string
+                            image:
+                              type: string
+                              nullable: true
+                      summary:
+                        type: object
+                        properties:
+                          subtotal:
+                            type: number
+                          discount:
+                            type: number
+                          shippingDiscount:
+                            type: number
+                          shippingFee:
+                            type: number
+                          total:
+                            type: number
+                      voucher:
+                        type: object
+                        properties:
+                          order:
+                            type: object
+                            nullable: true
+                            properties:
+                              code:
+                                type: string
+                              type:
+                                type: string
+                                enum: [PERCENTAGE, FIXED]
+                              discountValue:
+                                type: number
+                              maxDiscount:
+                                type: number
+                              minOrderValue:
+                                type: number
+                          shipping:
+                            type: object
+                            nullable: true
+                            properties:
+                              code:
+                                type: string
+                              type:
+                                type: string
+                                enum: [PERCENTAGE, FIXED]
+                              discountValue:
+                                type: number
+                              maxDiscount:
+                                type: number
+                              minOrderValue:
+                                type: number
+        '400':
+          description: Validation failed
+        '401':
+          description: Unauthorized
+        '404':
+          description: Voucher not found
+
+

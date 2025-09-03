@@ -10,6 +10,7 @@
     "seed:update-product-status": "node seeders/update-product-status.js",
     "seed:province": "node seeders/province-seeder.js",
     "seed:ward": "node seeders/ward-seeder.js",
+    "seed:update-voucher-target": "node seeders/update-voucher-target.js",
     "prepare": "husky install"
   },
   "dependencies": {
