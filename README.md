@@ -78,6 +78,23 @@ Notes:
 - Safe to run multiple times; only updates vouchers without a `target` field
 - Requires a valid `MONGO_URI` in your `.env`
 
+### Initialize Empty Variant Fields for Legacy Products
+
+If you recently added variant support (`variantGroups`, `variantCombinations`) to the Product model and need to initialize existing documents, run:
+
+```bash
+npm run seed:product-variants-empty
+```
+
+This command executes `seeders/update-product-variants-empty.js`, which:
+- Finds products where `variantGroups`/`variantCombinations` are missing or not arrays
+- Sets both fields to empty arrays: `variantGroups: []`, `variantCombinations: []`
+- Prints how many documents were modified
+
+Notes:
+- Safe to run multiple times; only updates documents that need fixing
+- Requires `MONGO_URI` configured in `.env`
+
 ## Province Seeder
 
 This project includes a seeder script to import all provinces from `province.json` into the MongoDB `provinces` collection.

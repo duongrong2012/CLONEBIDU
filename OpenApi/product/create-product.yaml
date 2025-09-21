@@ -65,13 +65,6 @@ paths:
                   enum: [PENDING, APPROVED, REJECTED]
                   description: Product status (Admin only, default is PENDING)
                   example: "PENDING"
-                metadata:
-                  type: object
-                  description: Dynamic attributes (size, color, brand, etc.)
-                  example:
-                    size: ["S", "M", "L"]
-                    color: ["Red", "Blue"]
-                    brand: "Nike"
                 totalRating:
                   type: number
                   minimum: 0
@@ -87,6 +80,122 @@ paths:
                   minimum: 0
                   description: Product stock quantity (>= 0)
                   example: 100
+                variantGroups:
+                  type: array
+                  description: Variant groups definition (required if variantCombinations provided)
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "Size"
+                      options:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            value:
+                              type: string
+                              example: "L"
+                            # priceDelta removed
+                variantCombinations:
+                  type: array
+                  description: Enumerated valid combinations. Sum of quantities must equal product quantity
+                  items:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        description: MongoDB generated id (returned after create)
+                        readOnly: true
+                      options:
+                        type: array
+                        description: One option per group (must match variantGroups)
+                        items:
+                          type: object
+                          properties:
+                            groupName:
+                              type: string
+                              example: "Size"
+                            optionValue:
+                              type: string
+                              example: "L"
+                      quantity:
+                        type: number
+                        minimum: 0
+                        example: 10
+                      price:
+                        type: number
+                        minimum: 0
+                        description: Price for this specific variant combination (required)
+                        example: 360000
+                      image:
+                        type: string
+                        description: Image URL representing this variant combination
+                        example: "https://cdn.example.com/products/hoodie/XL-GRAY.png"
+                      sku:
+                        type: string
+                        description: Optional seller SKU (will be uppercased, unique per seller)
+                        example: "HD-L-GRAY-001"
+                      discountPrice:
+                        type: number
+                        minimum: 0
+                        description: Optional discounted price for this combination (must be <= price)
+                        example: 315000
+            examples:
+              no_variants:
+                summary: Create product without variants
+                value:
+                  name: "Basic T-Shirt"
+                  description: "Soft cotton T-shirt"
+                  price: 120000
+                  discountPrice: 99000
+                  categories: ["65f1a2b3c4d5e6f7g8h9i0j1"]
+                  isActive: true
+                  isFeatured: false
+                  quantity: 150
+              with_variants:
+                summary: Create product with variant groups and combinations
+                value:
+                  name: "Premium Hoodie"
+                  description: "Fleece-lined hoodie"
+                  price: 350000
+                  discountPrice: 320000
+                  categories: ["65f1a2b3c4d5e6f7g8h9i0j1"]
+                  variantGroups:
+                    - name: "Size"
+                      options:
+                        - value: "S"
+                        - value: "M"
+                        - value: "L"
+                    - name: "Color"
+                      options:
+                        - value: "Black"
+                        - value: "Gray"
+                  variantCombinations:
+                    - sku: "HD-S-BLACK-001"
+                      options:
+                        - { groupName: "Size", optionValue: "S" }
+                        - { groupName: "Color", optionValue: "Black" }
+                      quantity: 5
+                      price: 330000
+                      discountPrice: 299000
+                      image: "https://cdn.example.com/hoodie/S-BLACK.png"
+                    - sku: "HD-M-BLACK-001"
+                      options:
+                        - { groupName: "Size", optionValue: "M" }
+                        - { groupName: "Color", optionValue: "Black" }
+                      quantity: 8
+                      price: 340000
+                      image: "https://cdn.example.com/hoodie/M-BLACK.png"
+                    - sku: "HD-L-GRAY-001"
+                      options:
+                        - { groupName: "Size", optionValue: "L" }
+                        - { groupName: "Color", optionValue: "Gray" }
+                      quantity: 12
+                      price: 360000
+                      discountPrice: 315000
+                      image: "https://cdn.example.com/hoodie/L-GRAY.png"
       responses:
         '200':
           description: Product created successfully
@@ -163,12 +272,7 @@ components:
           type: string
           enum: [PENDING, APPROVED, REJECTED]
           example: "PENDING"
-        metadata:
-          type: object
-          example:
-            size: ["S", "M", "L"]
-            color: ["Red", "Blue"]
-            brand: "Nike"
+        # metadata removed
         totalRating:
           type: number
           example: 0

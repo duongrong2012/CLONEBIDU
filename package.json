@@ -11,6 +11,7 @@
     "seed:province": "node seeders/province-seeder.js",
     "seed:ward": "node seeders/ward-seeder.js",
     "seed:update-voucher-target": "node seeders/update-voucher-target.js",
+    "seed:product-variants-empty": "node seeders/update-product-variants-empty.js",
     "prepare": "husky install"
   },
   "dependencies": {

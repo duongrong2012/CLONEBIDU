@@ -92,12 +92,7 @@ paths:
                           isFeatured:
                             type: boolean
                             example: false
-                          metadata:
-                            type: object
-                            example:
-                              size: ["S", "M", "L"]
-                              color: ["Red", "Blue"]
-                              brand: "Apple"
+                          # metadata removed
                           totalRating:
                             type: number
                             example: 100
@@ -159,10 +154,7 @@ paths:
                         categories: ["65f1a2b3c4d5e6f7g8h9i0j4"]
                         isActive: true
                         isFeatured: false
-                        metadata:
-                          size: ["S", "M", "L"]
-                          color: ["Red", "Blue"]
-                          brand: "Apple"
+                        # metadata removed
                         totalRating: 100
                         totalRatingPoints: 450
                         quantity: 50
@@ -190,10 +182,7 @@ paths:
                         categories: ["65f1a2b3c4d5e6f7g8h9i0j4"]
                         isActive: true
                         isFeatured: false
-                        metadata:
-                          size: ["S", "M", "L"]
-                          color: ["Red", "Blue"]
-                          brand: "Apple"
+                        # metadata removed
                         totalRating: 100
                         totalRatingPoints: 450
                         quantity: 50
