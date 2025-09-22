@@ -89,10 +89,7 @@ paths:
                           quantity: 10
                           createdBy: "65f1a2b3c4d5e6f7g8h9i0j3"
                           slug: "iphone-15-pro-a1b2c3d4"
-                          metadata:
-                            brand: "Apple"
-                            color: "Titanium"
-                            storage: "256GB"
+                          # metadata removed
                           createdAt: "2024-01-15T10:30:00.000Z"
                           updatedAt: "2024-01-15T10:30:00.000Z"
                         - _id: "65f1a2b3c4d5e6f7g8h9i0j4"
@@ -110,11 +107,7 @@ paths:
                           quantity: 5
                           createdBy: "65f1a2b3c4d5e6f7g8h9i0j6"
                           slug: "macbook-pro-m3-e5f6g7h8"
-                          metadata:
-                            brand: "Apple"
-                            color: "Space Gray"
-                            storage: "512GB"
-                            processor: "M3 Pro"
+                          # metadata removed
                           createdAt: "2024-01-14T15:45:00.000Z"
                           updatedAt: "2024-01-14T15:45:00.000Z"
                       pagination:

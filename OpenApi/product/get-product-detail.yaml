@@ -127,12 +127,7 @@ components:
         rejectedReason:
           type: string
           example: null
-        metadata:
-          type: object
-          example:
-            brand: "Apple"
-            color: "Titanium"
-            storage: "256GB"
+        # metadata removed
         totalRating:
           type: number
           example: 4.5

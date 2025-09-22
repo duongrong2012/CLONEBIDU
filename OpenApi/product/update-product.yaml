@@ -82,18 +82,61 @@ paths:
                   maxLength: 500
                   description: Reason for rejection (Admin only, required when status is REJECTED)
                   example: "Product description violates community guidelines"
-                metadata:
-                  type: object
-                  description: Additional product attributes
-                  example:
-                    size: "L"
-                    color: "Blue"
-                    brand: "Nike"
+                # metadata removed
                 quantity:
                   type: number
                   minimum: 0
                   description: Available quantity
                   example: 50
+                variantGroups:
+                  type: array
+                  description: Variant groups definition (optional; required if variantCombinations provided)
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      options:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            value:
+                              type: string
+                            # priceDelta removed
+                variantCombinations:
+                  type: array
+                  description: Valid combinations; sum of quantities must equal product quantity
+                  items:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      options:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            groupName:
+                              type: string
+                            optionValue:
+                              type: string
+                      quantity:
+                        type: number
+                        minimum: 0
+                      price:
+                        type: number
+                        minimum: 0
+                      discountPrice:
+                        type: number
+                        minimum: 0
+                      image:
+                        type: string
+                        description: Image URL representing this variant combination
+                      sku:
+                        type: string
+                        description: Optional seller SKU (uppercased on save, must be unique per seller)
+                        example: "HD-L-GRAY-001"
             examples:
               admin_update:
                 summary: Admin updating product status
@@ -108,6 +151,106 @@ paths:
                   price: 99.99
                   discountPrice: 79.99
                   quantity: 50
+              full_update_with_variants:
+                summary: Admin updates most fields including variants and SKUs
+                value:
+                  name: "Hoodie 2.0"
+                  description: "Premium fleece hoodie with better zipper"
+                  isActive: true
+                  isFeatured: true
+                  status: "APPROVED"
+                  categories: ["64b8a8f12a3c1f5d6e9a0001", "64b8a8f12a3c1f5d6e9a0002"]
+                  variantGroups:
+                    - name: "Size"
+                      options:
+                        - value: "M"
+                        - value: "L"
+                        - value: "XL"
+                    - name: "Color"
+                      options:
+                        - value: "BLACK"
+                        - value: "GRAY"
+                  variantCombinations:
+                    - _id: "64c1a7f12a3c1f5d6e9a1001"  # existing combination to update
+                      options:
+                        - groupName: "Size"
+                          optionValue: "L"
+                        - groupName: "Color"
+                          optionValue: "BLACK"
+                      quantity: 20
+                      price: 42.5
+                      discountPrice: 39.9
+                      image: "https://cdn.example.com/hoodie2/L-BLACK.png"
+                      sku: "HD-L-BLACK-001"
+                    - _id: "64c1a7f12a3c1f5d6e9a1002"  # existing combination to update
+                      options:
+                        - groupName: "Size"
+                          optionValue: "M"
+                        - groupName: "Color"
+                          optionValue: "GRAY"
+                      quantity: 15
+                      price: 40
+                      discountPrice: 0
+                      image: "https://cdn.example.com/hoodie2/M-GRAY.png"
+                      sku: "HD-M-GRAY-002"
+                    - options:  # new combination without _id (will be created)
+                        - groupName: "Size"
+                          optionValue: "XL"
+                        - groupName: "Color"
+                          optionValue: "GRAY"
+                      quantity: 10
+                      price: 45
+                      discountPrice: 41
+                      image: "https://cdn.example.com/hoodie2/XL-GRAY.png"
+                      sku: "HD-XL-GRAY-003"
+              partial_update_some_fields:
+                summary: Seller updates a few simple fields (no variants touched)
+                value:
+                  name: "Basic Tee - New Title"
+                  description: "Short description updated"
+                  isFeatured: false
+                  isActive: true
+              variants_add_and_update:
+                summary: Seller updates quantities and prices for existing variants and adds one new
+                value:
+                  variantCombinations:
+                    - _id: "64c1a7f12a3c1f5d6e9a2001"
+                      options:
+                        - groupName: "Size"
+                          optionValue: "M"
+                        - groupName: "Color"
+                          optionValue: "RED"
+                      quantity: 12
+                      price: 19.9
+                      discountPrice: 17.9
+                      image: "https://cdn.example.com/tee/M-RED.png"
+                      sku: "TEE-M-RED-001"
+                    - _id: "64c1a7f12a3c1f5d6e9a2002"
+                      options:
+                        - groupName: "Size"
+                          optionValue: "L"
+                        - groupName: "Color"
+                          optionValue: "RED"
+                      quantity: 8
+                      price: 21.9
+                      discountPrice: 0
+                      image: "https://cdn.example.com/tee/L-RED.png"
+                      sku: "TEE-L-RED-002"
+                    - options:  # add a new variant
+                        - groupName: "Size"
+                          optionValue: "XL"
+                        - groupName: "Color"
+                          optionValue: "RED"
+                      quantity: 5
+                      price: 22.9
+                      discountPrice: 20.9
+                      image: "https://cdn.example.com/tee/XL-RED.png"
+                      sku: "TEE-XL-RED-003"
+              admin_reject_with_reason:
+                summary: Admin rejects product with a reason
+                value:
+                  status: "REJECTED"
+                  rejectedReason: "Insufficient specification details provided"
       responses:
         '200':
           description: Product updated successfully

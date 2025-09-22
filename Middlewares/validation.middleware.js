@@ -15,6 +15,31 @@ const { v4: uuidv4 } = require('uuid');
 const Media = require('../Models/media.model');
 const { IMAGE_OWNER_TYPE } = require('../Utils/constant');
 const Product = require('../Models/product.model');
+const {
+  validateVariantModelInput,
+  validateVariantImages,
+  validateSkuPayloadUniqueness,
+  checkSkuUniquePerSellerWithModel,
+} = require('../Utils/variant.utils');
+
+// Local helper to map variant-related error messages to standardized field-error objects
+function mapVariantErrors(messages) {
+  const arr = Array.isArray(messages) ? messages : [messages];
+  return arr
+    .filter(m => typeof m === 'string' && m.trim())
+    .map(m => {
+      const lower = m.toLowerCase();
+      let field = 'variantCombinations';
+      if (lower.includes('group')) field = 'variantGroups';
+      if (lower.includes('sku')) field = 'sku';
+      return { field, message: m };
+    });
+}
+
+// Local helper to map express-validator errors to standardized array
+function mapExpressValidatorErrors(result) {
+  return result.array().map(err => ({ field: err.path, message: err.msg }));
+}
 
 /**
  * Middleware to validate user registration fields
@@ -863,7 +888,6 @@ const validateCreateProduct = [
     .optional()
     .isIn(Object.values(PRODUCT_STATUS))
     .withMessage(`Status must be one of: ${Object.values(PRODUCT_STATUS).join(', ')}`),
-  body('metadata').optional().isObject().withMessage('Metadata must be an object'),
   body('totalRating').optional().isNumeric().withMessage('totalRating must be a number'),
   body('totalRatingPoints')
     .optional()
@@ -872,16 +896,9 @@ const validateCreateProduct = [
   body('quantity').optional().isNumeric().withMessage('Quantity must be a number'),
   async (req, res, next) => {
     const errors = validationResult(req);
+    const errorDetails = [];
     if (!errors.isEmpty()) {
-      return next(
-        new AppError(
-          errors
-            .array()
-            .map(e => e.msg)
-            .join(', '),
-          400
-        )
-      );
+      errorDetails.push(...mapExpressValidatorErrors(errors));
     }
     // Filter only allowed fields
     const allowedFields = [
@@ -892,10 +909,11 @@ const validateCreateProduct = [
       'categories',
       'isActive',
       'isFeatured',
-      'metadata',
       'totalRating',
       'totalRatingPoints',
       'quantity',
+      'variantGroups',
+      'variantCombinations',
     ];
 
     // Only admin can set status
@@ -910,27 +928,34 @@ const validateCreateProduct = [
 
     // Required fields
     if (!filteredData.name || !filteredData.description || filteredData.price === undefined) {
-      return next(new AppError('Missing required fields: name, description, price', 400));
+      if (!filteredData.name) errorDetails.push({ field: 'name', message: 'name is required' });
+      if (!filteredData.description)
+        errorDetails.push({ field: 'description', message: 'description is required' });
+      if (filteredData.price === undefined)
+        errorDetails.push({ field: 'price', message: 'price is required' });
     }
 
     // price, discountPrice, quantity, totalRating, totalRatingPoints >= 0
     if (Number(filteredData.price) < 0) {
-      return next(new AppError('Price cannot be negative', 400));
+      errorDetails.push({ field: 'price', message: 'Price cannot be negative' });
     }
     if (filteredData.discountPrice !== undefined && Number(filteredData.discountPrice) < 0) {
-      return next(new AppError('Discount price cannot be negative', 400));
+      errorDetails.push({ field: 'discountPrice', message: 'Discount price cannot be negative' });
     }
     if (filteredData.quantity !== undefined && Number(filteredData.quantity) < 0) {
-      return next(new AppError('Quantity cannot be negative', 400));
+      errorDetails.push({ field: 'quantity', message: 'Quantity cannot be negative' });
     }
     if (filteredData.totalRating !== undefined && Number(filteredData.totalRating) < 0) {
-      return next(new AppError('Total rating cannot be negative', 400));
+      errorDetails.push({ field: 'totalRating', message: 'Total rating cannot be negative' });
     }
     if (
       filteredData.totalRatingPoints !== undefined &&
       Number(filteredData.totalRatingPoints) < 0
     ) {
-      return next(new AppError('Total rating points cannot be negative', 400));
+      errorDetails.push({
+        field: 'totalRatingPoints',
+        message: 'Total rating points cannot be negative',
+      });
     }
     // discountPrice <= price
     if (
@@ -938,21 +963,102 @@ const validateCreateProduct = [
       filteredData.price !== undefined &&
       Number(filteredData.discountPrice) > Number(filteredData.price)
     ) {
-      return next(new AppError('Discount price cannot be greater than price', 400));
+      errorDetails.push({
+        field: 'discountPrice',
+        message: 'Discount price cannot be greater than price',
+      });
     }
-    // Check categories exist and no duplicate
+    // Categories non-DB check (duplicate) only; existence DB check deferred to later
     if (filteredData.categories && filteredData.categories.length > 0) {
-      // Duplicate check
       const uniqueCategories = new Set(filteredData.categories.map(String));
       if (uniqueCategories.size !== filteredData.categories.length) {
-        return next(new AppError('Duplicate category in categories array', 400));
-      }
-      // Existence check
-      const found = await Category.find({ _id: { $in: filteredData.categories } });
-      if (found.length !== filteredData.categories.length) {
-        return next(new AppError('One or more categories do not exist', 400));
+        errorDetails.push({
+          field: 'categories',
+          message: 'Duplicate category in categories array',
+        });
       }
     }
+    // Variant model validation (if provided)
+    if (filteredData.variantGroups || filteredData.variantCombinations) {
+      const {
+        valid,
+        errors: variantErrors,
+        sumQuantity,
+      } = validateVariantModelInput({
+        variantGroups: filteredData.variantGroups,
+        variantCombinations: filteredData.variantCombinations,
+        productQuantity: filteredData.quantity,
+      });
+      if (!valid) {
+        errorDetails.push(...mapVariantErrors(variantErrors));
+      }
+      // Image URL validation for variant combinations (optional field)
+      if (
+        Array.isArray(filteredData.variantCombinations) &&
+        filteredData.variantCombinations.length > 0
+      ) {
+        const { valid: imgValid, errors: imgErrors } = validateVariantImages(
+          filteredData.variantCombinations
+        );
+        if (!imgValid) errorDetails.push(...mapVariantErrors(imgErrors));
+      }
+
+      // SKU validation inside payload (optional SKUs, but if present must be unique within payload)
+      if (
+        Array.isArray(filteredData.variantCombinations) &&
+        filteredData.variantCombinations.length > 0
+      ) {
+        const {
+          valid: skuValid,
+          errors: skuErrors,
+          skus,
+        } = validateSkuPayloadUniqueness(filteredData.variantCombinations);
+        if (!skuValid) errorDetails.push(...mapVariantErrors(skuErrors));
+        // Defer DB SKU check until after non-DB errors have been handled below
+        req.__pendingSkuCheck = { skus };
+      }
+      // Auto-sync product quantity from variant combinations on create when variants are present
+      if (
+        Array.isArray(filteredData.variantGroups) &&
+        filteredData.variantGroups.length > 0 &&
+        Array.isArray(filteredData.variantCombinations) &&
+        filteredData.variantCombinations.length > 0
+      ) {
+        filteredData.quantity = sumQuantity;
+      }
+    }
+    if (errorDetails.length > 0) {
+      return next(new AppError('Validation failed', 400, errorDetails));
+    }
+
+    // DB checks (only when all non-DB validations passed)
+    // 1) Categories existence
+    if (filteredData.categories && filteredData.categories.length > 0) {
+      const found = await Category.find({ _id: { $in: filteredData.categories } });
+      if (found.length !== filteredData.categories.length) {
+        return next(
+          new AppError('Validation failed', 400, [
+            { field: 'categories', message: 'One or more categories do not exist' },
+          ])
+        );
+      }
+    }
+    // 2) SKU unique per seller
+    if (req.__pendingSkuCheck && Array.isArray(req.__pendingSkuCheck.skus)) {
+      const { skus } = req.__pendingSkuCheck;
+      const { ok } = await checkSkuUniquePerSellerWithModel(
+        Product,
+        req.user?._id || filteredData.createdBy,
+        skus
+      );
+      if (!ok)
+        return next(
+          new AppError('Validation failed', 400, [
+            { field: 'sku', message: 'SKU must be unique per seller' },
+          ])
+        );
+    }
+
     req.validatedData = filteredData;
     next();
   },
@@ -1115,23 +1221,14 @@ const validateUpdateProduct = [
     .isLength({ min: 1, max: 500 })
     .withMessage('Rejected reason must be 1-500 characters'),
 
-  body('metadata').optional().isObject().withMessage('Metadata must be an object'),
-
   body('quantity').optional().isNumeric().withMessage('Quantity must be a number'),
 
   async (req, res, next) => {
     try {
       const errors = validationResult(req);
+      const errorDetails = [];
       if (!errors.isEmpty()) {
-        return next(
-          new AppError(
-            errors
-              .array()
-              .map(e => e.msg)
-              .join(', '),
-            400
-          )
-        );
+        errorDetails.push(...mapExpressValidatorErrors(errors));
       }
 
       // Filter only allowed fields based on user role
@@ -1145,6 +1242,8 @@ const validateUpdateProduct = [
         'isFeatured',
         'metadata',
         'quantity',
+        'variantGroups',
+        'variantCombinations',
       ];
 
       // Only admin can update status and rejectedReason
@@ -1160,20 +1259,20 @@ const validateUpdateProduct = [
         }
       }
 
-      // Check if there are any fields to update
+      // Check if there are any fields to update (non-DB)
       if (Object.keys(filteredData).length === 0) {
-        return next(new AppError('No fields provided for update', 400));
+        errorDetails.push({ field: 'general', message: 'No fields provided for update' });
       }
 
-      // Business validation: price, discountPrice, quantity >= 0
+      // Business validation: price, discountPrice, quantity >= 0 (non-DB)
       if (filteredData.price !== undefined && Number(filteredData.price) < 0) {
-        return next(new AppError('Price cannot be negative', 400));
+        errorDetails.push({ field: 'price', message: 'Price cannot be negative' });
       }
       if (filteredData.discountPrice !== undefined && Number(filteredData.discountPrice) < 0) {
-        return next(new AppError('Discount price cannot be negative', 400));
+        errorDetails.push({ field: 'discountPrice', message: 'Discount price cannot be negative' });
       }
       if (filteredData.quantity !== undefined && Number(filteredData.quantity) < 0) {
-        return next(new AppError('Quantity cannot be negative', 400));
+        errorDetails.push({ field: 'quantity', message: 'Quantity cannot be negative' });
       }
 
       // Business validation: discountPrice <= price
@@ -1182,12 +1281,18 @@ const validateUpdateProduct = [
         filteredData.price !== undefined &&
         Number(filteredData.discountPrice) > Number(filteredData.price)
       ) {
-        return next(new AppError('Discount price cannot be greater than price', 400));
+        errorDetails.push({
+          field: 'discountPrice',
+          message: 'Discount price cannot be greater than price',
+        });
       }
 
       // Business validation: rejectedReason required when status is REJECTED
       if (filteredData.status === PRODUCT_STATUS.REJECTED && !filteredData.rejectedReason) {
-        return next(new AppError('Rejected reason is required when status is REJECTED', 400));
+        errorDetails.push({
+          field: 'rejectedReason',
+          message: 'Rejected reason is required when status is REJECTED',
+        });
       }
 
       // Business validation: Check categories exist and no duplicate
@@ -1201,16 +1306,33 @@ const validateUpdateProduct = [
         // Duplicate check
         const uniqueCategories = new Set(categories.map(String));
         if (uniqueCategories.size !== categories.length) {
-          return next(new AppError('Duplicate category in categories array', 400));
+          errorDetails.push({
+            field: 'categories',
+            message: 'Duplicate category in categories array',
+          });
         }
 
         // Existence check
+        // Before DB check, return non-DB errors if any
+        if (errorDetails.length > 0) {
+          return next(new AppError('Validation failed', 400, errorDetails));
+        }
+
         const found = await Category.find({ _id: { $in: categories } });
         if (found.length !== categories.length) {
-          return next(new AppError('One or more categories do not exist', 400));
+          return next(
+            new AppError('Validation failed', 400, [
+              { field: 'categories', message: 'One or more categories do not exist' },
+            ])
+          );
         }
 
         filteredData.categories = categories;
+      }
+
+      // If any non-DB errors collected so far, return once
+      if (errorDetails.length > 0) {
+        return next(new AppError('Validation failed', 400, errorDetails));
       }
 
       // Business validation: Check product exists
@@ -1221,7 +1343,11 @@ const validateUpdateProduct = [
 
       // Business validation: Check user permissions
       if (user.role === USER_ROLES.SELLER && product.createdBy.toString() !== user._id.toString()) {
-        return next(new AppError('You can only update your own products', 403));
+        return next(
+          new AppError('Validation failed', 403, [
+            { field: 'permission', message: 'You can only update your own products' },
+          ])
+        );
       }
 
       // Auto-set status to PENDING when seller updates product (except when admin is updating)
@@ -1229,6 +1355,81 @@ const validateUpdateProduct = [
         filteredData.status = PRODUCT_STATUS.PENDING;
         // Clear rejectedReason when status changes to PENDING
         filteredData.rejectedReason = null;
+      }
+
+      // Variant model validation (when updating) + rules for quantity edits
+      const willHaveVariants =
+        (filteredData.variantGroups !== undefined
+          ? Array.isArray(filteredData.variantGroups) && filteredData.variantGroups.length > 0
+          : Array.isArray(product.variantGroups) && product.variantGroups.length > 0) ||
+        (filteredData.variantCombinations !== undefined
+          ? Array.isArray(filteredData.variantCombinations) &&
+            filteredData.variantCombinations.length > 0
+          : Array.isArray(product.variantCombinations) && product.variantCombinations.length > 0);
+
+      if (
+        filteredData.variantGroups !== undefined ||
+        filteredData.variantCombinations !== undefined ||
+        filteredData.quantity !== undefined
+      ) {
+        const effective = {
+          variantGroups:
+            filteredData.variantGroups !== undefined
+              ? filteredData.variantGroups
+              : product.variantGroups,
+          variantCombinations:
+            filteredData.variantCombinations !== undefined
+              ? filteredData.variantCombinations
+              : product.variantCombinations,
+          productQuantity:
+            filteredData.quantity !== undefined ? filteredData.quantity : product.quantity,
+        };
+        const { valid, errors: variantErrors, sumQuantity } = validateVariantModelInput(effective);
+        if (!valid) {
+          return next(new AppError('Validation failed', 400, mapVariantErrors(variantErrors)));
+        }
+        // Image URL validation for update payload if variantCombinations provided
+        if (
+          Array.isArray(effective.variantCombinations) &&
+          effective.variantCombinations.length > 0
+        ) {
+          const { valid: imgValid, errors: imgErrors } = validateVariantImages(
+            effective.variantCombinations
+          );
+          if (!imgValid)
+            return next(new AppError('Validation failed', 400, mapVariantErrors(imgErrors)));
+        }
+
+        // SKU validation for update payload if variantCombinations provided
+        if (
+          Array.isArray(effective.variantCombinations) &&
+          effective.variantCombinations.length > 0
+        ) {
+          const {
+            valid: skuValid,
+            errors: skuErrors,
+            skus,
+          } = validateSkuPayloadUniqueness(effective.variantCombinations);
+          if (!skuValid)
+            return next(new AppError('Validation failed', 400, mapVariantErrors(skuErrors)));
+          const { ok } = await checkSkuUniquePerSellerWithModel(
+            Product,
+            product.createdBy,
+            skus,
+            product._id
+          );
+          if (!ok)
+            return next(
+              new AppError('Validation failed', 400, [
+                { field: 'sku', message: 'SKU must be unique per seller' },
+              ])
+            );
+        }
+        if (willHaveVariants) {
+          // Disallow direct quantity override; always sync from combinations
+          if (filteredData.quantity !== undefined) delete filteredData.quantity;
+          filteredData.quantity = sumQuantity;
+        }
       }
 
       // Store validated data and product for controller usage

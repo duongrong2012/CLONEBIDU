@@ -239,10 +239,7 @@ components:
         isFeatured:
           type: boolean
           example: false
-        metadata:
-          type: object
-          additionalProperties: true
-          example: { color: 'black', brand: 'Dell', size: '13 inch' }
+        # metadata removed
         totalRating:
           type: number
           example: 4.5
