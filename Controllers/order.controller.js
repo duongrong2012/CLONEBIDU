@@ -26,6 +26,26 @@ class OrderController {
     );
     res.json(response.success('Order preview generated successfully', result));
   });
+
+  create = catchAsync(async (req, res) => {
+    const userId = req.user._id;
+    const voucherOrder = req.validatedData?.voucherOrder || null;
+    const voucherShipping = req.validatedData?.voucherShipping || null;
+    const items = req.validatedData?.items || [];
+    const deliveryLocation = req.validatedData?.deliveryLocation || null;
+    const deliveryMethod = req.validatedData?.deliveryMethod || null;
+    const paymentMethod = req.validatedData?.paymentMethod || null;
+    const created = await orderService.createOrder({
+      userId,
+      items,
+      deliveryLocation,
+      deliveryMethod,
+      voucherOrder,
+      voucherShipping,
+      paymentMethod,
+    });
+    res.json(response.success('Order created successfully', created));
+  });
 }
 
 module.exports = new OrderController();

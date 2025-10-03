@@ -1,9 +1,21 @@
+const mongoose = require('mongoose');
 const { validationResult, query, body } = require('express-validator');
 const { AppError } = require('../Utils/error.utils');
 const Voucher = require('../Models/voucher.model');
-const { VOUCHER_STATUS, VOUCHER_TARGET } = require('../Utils/constant');
+const Order = require('../Models/order.model');
+const {
+  VOUCHER_STATUS,
+  VOUCHER_TARGET,
+  PAYMENT_METHOD,
+  ORDER_STATUS,
+} = require('../Utils/constant');
 // const Cart = require('../Models/cart.model');
 const Product = require('../Models/product.model');
+const {
+  hasVariants,
+  resolveVariantSelection,
+  calculateFinalUnitPrice,
+} = require('../Utils/variant.utils');
 
 // Validate query voucher codes (optional) and business rules
 const validateOrderPreview = [
@@ -13,7 +25,7 @@ const validateOrderPreview = [
      * Check basic voucher constraints (active, status, time window, target)
      * @returns {Array<{field:string,message:string}>} errors
      */
-    req.__checkVoucherBasics = (voucher, expectedTarget, fieldName, now) => {
+    req.__checkVoucherBasics = ({ voucher, expectedTarget, fieldName, now }) => {
       const errs = [];
       if (!voucher.isActive) {
         errs.push({ field: fieldName, message: 'Voucher is not available' });
@@ -37,6 +49,15 @@ const validateOrderPreview = [
         voucher.currentUsage >= voucher.quantity
       ) {
         errs.push({ field: fieldName, message: 'Voucher usage limit reached' });
+      }
+      if (typeof voucher.usageLimitPerUser === 'number' && voucher.usageLimitPerUser > 0) {
+        const usageCount =
+          typeof voucher.__userUsageCount === 'number'
+            ? voucher.__userUsageCount
+            : voucher.__usageCountFallback || 0;
+        if (usageCount >= voucher.usageLimitPerUser) {
+          errs.push({ field: fieldName, message: 'Voucher usage limit per user reached' });
+        }
       }
       // Note: Per-user usage (usageLimitPerUser) requires usage tracking at redemption time.
       // It will be enforced during actual apply step, not preview, unless usage records are available.
@@ -162,7 +183,6 @@ const validateOrderPreview = [
     .withMessage('items[].product must be a string.')
     .bail()
     .custom(value => {
-      const mongoose = require('mongoose');
       if (!mongoose.Types.ObjectId.isValid(value)) {
         throw new Error('items[].product must be a valid MongoId.');
       }
@@ -174,6 +194,18 @@ const validateOrderPreview = [
     .bail()
     .isInt({ min: 1 })
     .withMessage('items[].quantity must be an integer >= 1.'),
+  // Optional variantCombinationId string; required later when product has variants
+  body('items.*.variantCombinationId')
+    .optional()
+    .isString()
+    .withMessage('items[].variantCombinationId must be a string.')
+    .bail()
+    .custom(value => {
+      if (!mongoose.Types.ObjectId.isValid(value)) {
+        throw new Error('items[].variantCombinationId must be a valid MongoId.');
+      }
+      return true;
+    }),
   // Validate delivery info
   body('deliveryLocation')
     .exists()
@@ -264,30 +296,13 @@ const validateOrderPreview = [
     req.validatedData.deliveryMethod = req.body.deliveryMethod;
     const productIds = rawItems.map(i => i.product);
 
-    // Reject duplicate product ids in request items
-    const seenIds = new Set();
-    const duplicateIds = [];
-    for (const id of productIds) {
-      const key = String(id);
-      if (seenIds.has(key)) {
-        if (!duplicateIds.includes(key)) duplicateIds.push(key);
-      } else {
-        seenIds.add(key);
-      }
-    }
-    if (duplicateIds.length > 0) {
-      return next(
-        new AppError(
-          'Validation failed',
-          400,
-          duplicateIds.map(id => ({ field: 'items', message: `Duplicate product in items: ${id}` }))
-        )
-      );
-    }
+    // Duplicate detection will be performed per combination (product + variant) after resolving combinations
+    const seenLineItems = new Set();
     const products = await Product.find({ _id: { $in: productIds } }).lean();
     const productMap = new Map(products.map(p => [String(p._id), p]));
 
-    for (const { product, quantity } of rawItems) {
+    for (const raw of rawItems) {
+      const { product, quantity, variantCombinationId } = raw;
       const p = productMap.get(String(product));
       if (!p) {
         return next(
@@ -296,11 +311,11 @@ const validateOrderPreview = [
           ])
         );
       }
-      // Prevent applying voucher to own products (for sellers)
+      // Prevent ordering own products
       if (String(p.createdBy) === String(req.user._id)) {
         return next(
           new AppError('Validation failed', 400, [
-            { field: 'items', message: `Cannot apply voucher to your own product: ${product}` },
+            { field: 'items', message: `Cannot order your own product: ${product}` },
           ])
         );
       }
@@ -319,7 +334,7 @@ const validateOrderPreview = [
           ])
         );
       }
-      // Stock checks
+      // Stock checks (product-level or variant-combination-level)
       const requestedQty = Number(quantity);
       if (!Number.isFinite(requestedQty) || requestedQty < 1) {
         return next(
@@ -328,39 +343,151 @@ const validateOrderPreview = [
           ])
         );
       }
-      if (typeof p.quantity === 'number') {
-        if (p.quantity <= 0) {
-          return next(
-            new AppError('Validation failed', 400, [
-              { field: 'items', message: `Product is out of stock: ${product}` },
-            ])
-          );
-        }
-        if (requestedQty > p.quantity) {
+      const hasVariantGroups = hasVariants(p);
+      let chosenCombination = null;
+      let variantOptionsSnapshot = undefined;
+
+      if (hasVariantGroups) {
+        // Require variant combination id selection
+        if (typeof variantCombinationId !== 'string' || !variantCombinationId.trim()) {
           return next(
             new AppError('Validation failed', 400, [
               {
                 field: 'items',
-                message: `Requested quantity (${requestedQty}) exceeds available stock (${p.quantity}) for product: ${product}`,
+                message: `variantCombinationId is required for product: ${product}`,
               },
             ])
           );
         }
+        // Resolve by helper
+        try {
+          const { combination, optionsSnapshot } = resolveVariantSelection(p, {
+            _id: variantCombinationId,
+          });
+          chosenCombination = combination;
+          variantOptionsSnapshot = optionsSnapshot;
+        } catch (e) {
+          return next(
+            new AppError('Validation failed', 400, [
+              { field: 'items', message: `${e.message} for product: ${product}` },
+            ])
+          );
+        }
+
+        // Combination stock checks
+        if (typeof chosenCombination.quantity === 'number') {
+          if (chosenCombination.quantity <= 0) {
+            return next(
+              new AppError('Validation failed', 400, [
+                { field: 'items', message: `Variant is out of stock for product: ${product}` },
+              ])
+            );
+          }
+          if (requestedQty > chosenCombination.quantity) {
+            return next(
+              new AppError('Validation failed', 400, [
+                {
+                  field: 'items',
+                  message: `Requested quantity (${requestedQty}) exceeds available stock (${chosenCombination.quantity}) for selected variant of product: ${product}`,
+                },
+              ])
+            );
+          }
+        }
+
+        // Determine price delta
+        // variantPriceDelta and variantOptionsSnapshot already computed
+      } else {
+        // Product has no variants; reject variant payload if provided
+        if (variantCombinationId) {
+          return next(
+            new AppError('Validation failed', 400, [
+              {
+                field: 'items',
+                message: `Product has no variants. Remove variantCombinationId for product: ${product}`,
+              },
+            ])
+          );
+        }
+        // Product-level stock checks
+        if (typeof p.quantity === 'number') {
+          if (p.quantity <= 0) {
+            return next(
+              new AppError('Validation failed', 400, [
+                { field: 'items', message: `Product is out of stock: ${product}` },
+              ])
+            );
+          }
+          if (requestedQty > p.quantity) {
+            return next(
+              new AppError('Validation failed', 400, [
+                {
+                  field: 'items',
+                  message: `Requested quantity (${requestedQty}) exceeds available stock (${p.quantity}) for product: ${product}`,
+                },
+              ])
+            );
+          }
+        }
       }
-      const hasDiscount = typeof p.discountPrice === 'number' && p.discountPrice >= 0;
-      const unitPrice = hasDiscount ? p.discountPrice : p.price;
-      const itemTotal = unitPrice * requestedQty;
+
+      // Duplicate detection key: product + combination (if any)
+      const dedupeKey = hasVariantGroups
+        ? `${String(p._id)}#${String(chosenCombination._id)}`
+        : `${String(p._id)}`;
+      if (seenLineItems.has(dedupeKey)) {
+        return next(
+          new AppError('Validation failed', 400, [
+            {
+              field: 'items',
+              message: `Duplicate item (same product and variant) detected: ${dedupeKey}`,
+            },
+          ])
+        );
+      }
+      seenLineItems.add(dedupeKey);
+
+      const combinationPrice =
+        hasVariantGroups && typeof chosenCombination?.price === 'number'
+          ? chosenCombination.price
+          : undefined;
+      const combinationDiscountPrice =
+        hasVariantGroups && typeof chosenCombination?.discountPrice === 'number'
+          ? chosenCombination.discountPrice
+          : undefined;
+
+      const effectivePrice = typeof combinationPrice === 'number' ? combinationPrice : p.price;
+      const effectiveDiscountPrice =
+        typeof combinationDiscountPrice === 'number'
+          ? combinationDiscountPrice
+          : typeof p.discountPrice === 'number'
+            ? p.discountPrice
+            : null;
+
+      const finalUnitPrice = calculateFinalUnitPrice(p.price, p.discountPrice, chosenCombination);
+      const itemTotal = finalUnitPrice * requestedQty;
+
       req.validatedData.items.push({
         productId: String(p._id),
         name: p.name,
-        price: p.price,
-        discountPrice: p.discountPrice ?? null,
-        unitPrice,
+        price: effectivePrice,
+        discountPrice: effectiveDiscountPrice,
+        finalUnitPrice,
         quantity: requestedQty,
         itemTotal,
         sellerId: String(p.createdBy),
         categories: (p.categories || []).map(c => String(c)),
-        image: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null,
+        images: Array.isArray(p.images) ? p.images : [],
+        variantCombinationId: hasVariantGroups ? String(chosenCombination._id) : undefined,
+        variantOptions: hasVariantGroups ? variantOptionsSnapshot : undefined,
+        variantImage:
+          hasVariantGroups && typeof chosenCombination?.image === 'string'
+            ? chosenCombination.image
+            : undefined,
+        variantSku:
+          hasVariantGroups && typeof chosenCombination?.sku === 'string'
+            ? chosenCombination.sku
+            : undefined,
       });
     }
 
@@ -390,12 +517,18 @@ const validateOrderPreview = [
           ])
         );
       }
-      const basicsErr = req.__checkVoucherBasics(
+      const usageCount = await Order.countDocuments({
+        user: req.user._id,
+        voucherCode: voucher.code,
+        status: { $ne: ORDER_STATUS.CANCELLED },
+      });
+      voucher.__userUsageCount = usageCount;
+      const basicsErr = req.__checkVoucherBasics({
         voucher,
-        VOUCHER_TARGET.ORDER_DISCOUNT,
-        'voucherOrderCode',
-        now
-      );
+        expectedTarget: VOUCHER_TARGET.ORDER_DISCOUNT,
+        fieldName: 'voucherOrderCode',
+        now,
+      });
       if (basicsErr.length) return next(new AppError('Validation failed', 400, basicsErr));
 
       const userErr = req.__enforceApplicableUsers(voucher, req.user._id, 'voucherOrderCode');
@@ -420,12 +553,18 @@ const validateOrderPreview = [
           ])
         );
       }
-      const basicsErr = req.__checkVoucherBasics(
+      const usageCount = await Order.countDocuments({
+        user: req.user._id,
+        voucherCode: voucher.code,
+        status: { $ne: ORDER_STATUS.CANCELLED },
+      });
+      voucher.__userUsageCount = usageCount;
+      const basicsErr = req.__checkVoucherBasics({
         voucher,
-        VOUCHER_TARGET.SHIPPING_DISCOUNT,
-        'voucherShippingCode',
-        now
-      );
+        expectedTarget: VOUCHER_TARGET.SHIPPING_DISCOUNT,
+        fieldName: 'voucherShippingCode',
+        now,
+      });
       if (basicsErr.length) return next(new AppError('Validation failed', 400, basicsErr));
 
       const userErr = req.__enforceApplicableUsers(voucher, req.user._id, 'voucherShippingCode');
@@ -499,4 +638,29 @@ const validateOrderPreview = [
   },
 ];
 
-module.exports = { validateOrderPreview };
+/**
+ * Create Order validation
+ * Reuse preview pipeline, but require vouchers, delivery, and items similarly
+ */
+const validateCreateOrder = [
+  // Require paymentMethod for create order
+  body('paymentMethod')
+    .exists()
+    .withMessage('paymentMethod is required.')
+    .bail()
+    .isString()
+    .withMessage('paymentMethod must be a string.')
+    .bail()
+    .custom(value => Object.values(PAYMENT_METHOD).includes(value))
+    .withMessage(`paymentMethod must be one of: ${Object.values(PAYMENT_METHOD).join(', ')}`),
+  // Reuse the same validators as preview
+  ...validateOrderPreview,
+  // Attach paymentMethod to validatedData
+  (req, _res, next) => {
+    if (!req.validatedData) req.validatedData = {};
+    req.validatedData.paymentMethod = req.body.paymentMethod;
+    next();
+  },
+];
+
+module.exports = { validateOrderPreview, validateCreateOrder };

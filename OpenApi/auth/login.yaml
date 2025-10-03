@@ -106,8 +106,15 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginRequest'
             examples:
-              regularUser:
-                summary: Regular user login
+              buyerAccount:
+                summary: Buyer account login
+                description: Example credentials for a buyer account.
+                value:
+                  email: user4@example.com
+                  password: Password123!
+              sellerAccount:
+                summary: Seller account login
+                description: Example credentials for a seller account.
                 value:
                   email: user@example.com
                   password: Password123!
