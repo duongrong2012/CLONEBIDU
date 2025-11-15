@@ -75,8 +75,13 @@ paths:
                 paymentMethod:
                   type: string
                   description: "Payment method"
-                  enum: [COD, CREDIT_CARD, BANK_TRANSFER]
-                  example: "COD"
+                  enum: [COD, ONLINE]
+                  example: "ONLINE"
+                paymentProvider:
+                  type: string
+                  description: "Payment provider (required when paymentMethod is ONLINE)"
+                  enum: [SEPAY]
+                  example: "SEPAY"
             examples:
               valid:
                 summary: "Valid create order request"
@@ -96,7 +101,8 @@ paths:
                     districtCode: "0123"
                     provinceCode: "79"
                   deliveryMethod: "STANDARD"
-                  paymentMethod: "COD"
+                  paymentMethod: "ONLINE"
+                  paymentProvider: "SEPAY"
       responses:
         '200':
           description: "Order created successfully"

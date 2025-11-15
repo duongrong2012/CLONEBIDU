@@ -7,6 +7,8 @@ const {
   PRODUCT_STATUS,
   VOUCHER_STATUS,
   VOUCHER_TARGET,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
 } = require('../Utils/constant');
 const { calculateShippingFee } = require('../Utils/shipping.utils');
 const OrderModel = require('../Models/order.model');
@@ -146,6 +148,7 @@ class OrderService {
     voucherOrder,
     voucherShipping,
     paymentMethod,
+    paymentProvider,
     models,
   }) {
     const Order = models?.Order || OrderModel;
@@ -263,6 +266,9 @@ class OrderService {
         status: ORDER_STATUS.PENDING,
         shippingAddress: deliveryLocation,
         paymentMethod,
+        paymentProvider:
+          paymentMethod === PAYMENT_METHOD.ONLINE && paymentProvider ? paymentProvider : null,
+        paymentStatus: PAYMENT_STATUS.PENDING,
         voucherCode: voucherCodes,
         discountAmount: preview.summary.discount,
         shippingFee: preview.summary.shippingFee,

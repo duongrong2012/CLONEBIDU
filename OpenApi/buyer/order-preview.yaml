@@ -61,6 +61,9 @@ paths:
                 deliveryMethod:
                   type: string
                   description: "Delivery method enum (e.g., STANDARD, EXPRESS)"
+                paymentMethod:
+                  type: string
+                  description: "Payment method (COD or ONLINE)"
       responses:
         '200':
           description: Order preview generated successfully

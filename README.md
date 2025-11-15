@@ -24,6 +24,20 @@ PORT=3000
 MONGO_URI=mongodb://localhost:27017/your-database
 JWT_SECRET=your-jwt-secret
 JWT_REFRESH_SECRET=your-jwt-refresh-secret
+
+# SePay payment gateway
+SEPAY_BASE_URL=https://sandbox-api.sepay.vn
+SEPAY_PARTNER_CODE=your-partner-code
+SEPAY_API_KEY=your-api-key
+SEPAY_SECRET_KEY=your-secret
+SEPAY_RETURN_URL=https://your-frontend/checkout/success
+# SePay QR configuration
+SEPAY_QR_BASE_URL=https://qr.sepay.vn/img
+SEPAY_ACCOUNT_NUMBER=your-bank-account
+SEPAY_BANK_CODE=MB
+SEPAY_ACCOUNT_NAME=SEPAY COMPANY
+SEPAY_QR_TEMPLATE=compact
+SEPAY_CALLBACK_URL=https://your-backend/payments/sepay/webhook
 ```
 
 4. Start the server:
