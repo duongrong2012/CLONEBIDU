@@ -1,0 +1,93 @@
+paths:
+  /payments/sepay/webhook:
+    post:
+      summary: SePay payment webhook
+      tags:
+        - Payment
+      security:
+        - SepayWebhookAuth: []
+      description: "Send Authorization header in format: Apikey {SEPAY_WEBHOOK_API_KEY}. Endpoint always responds 200 to acknowledge receipt; invalid payload/auth is soft-checked and ignored."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gateway:
+                  type: string
+                transactionDate:
+                  type: string
+                accountNumber:
+                  type: string
+                subAccount:
+                  type: string
+                  nullable: true
+                code:
+                  type: string
+                content:
+                  type: string
+                  description: Transfer content, should contain DH{orderId}
+                transferType:
+                  type: string
+                  enum: [in, out]
+                transferAmount:
+                  type: number
+                accumulated:
+                  type: number
+                referenceCode:
+                  type: string
+                id:
+                  type: integer
+                description:
+                  type: string
+                  nullable: true
+            examples:
+              success:
+                summary: Example success webhook payload
+                value:
+                  gateway: "sacombank"
+                  transactionDate: "2025-10-22 21:47:16"
+                  accountNumber: "0123456789"
+                  subAccount: null
+                  code: "DH66f648af087048a122050fd4"
+                  content: "DH66f648af087048a122050fd4"
+                  transferType: "in"
+                  transferAmount: 170000
+                  accumulated: 103500000
+                  referenceCode: ""
+                  id: 237654
+                  description: null
+              failed:
+                summary: Example failed webhook payload (money out)
+                value:
+                  gateway: "sacombank"
+                  transactionDate: "2025-10-22 21:47:16"
+                  accountNumber: "0123456789"
+                  subAccount: null
+                  code: "DH66f648af087048a122050fd4"
+                  content: "DH66f648af087048a122050fd4"
+                  transferType: "out"
+                  transferAmount: 170000
+                  accumulated: 103500000
+                  referenceCode: ""
+                  id: 237654
+                  description: null
+      responses:
+        '200':
+          description: Webhook acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+components:
+  securitySchemes:
+    SepayWebhookAuth:
+      type: apiKey
+      in: header
+      name: Authorization

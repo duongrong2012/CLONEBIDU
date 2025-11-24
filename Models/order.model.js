@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
-const { ORDER_STATUS, PAYMENT_METHOD } = require('../Utils/constant');
+const {
+  ORDER_STATUS,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
+  PAYMENT_PROVIDER,
+} = require('../Utils/constant');
 
 /**
  * Order Schema
@@ -26,6 +31,24 @@ const OrderSchema = new mongoose.Schema(
       enum: Object.values(PAYMENT_METHOD),
       required: true,
     },
+    paymentStatus: {
+      type: String,
+      enum: Object.values(PAYMENT_STATUS),
+      default: PAYMENT_STATUS.PENDING,
+    },
+    paymentProvider: {
+      type: String,
+      enum: Object.values(PAYMENT_PROVIDER),
+      default: null,
+    },
+    paymentReference: {
+      type: String,
+      default: null,
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
     orderDetails: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -47,10 +70,6 @@ const OrderSchema = new mongoose.Schema(
     subtotal: {
       type: Number,
       required: true,
-    },
-    transactionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Transaction',
     },
     totalPrice: {
       type: Number,

@@ -35,6 +35,7 @@ class OrderController {
     const deliveryLocation = req.validatedData?.deliveryLocation || null;
     const deliveryMethod = req.validatedData?.deliveryMethod || null;
     const paymentMethod = req.validatedData?.paymentMethod || null;
+    const paymentProvider = req.validatedData?.paymentProvider || null;
     const created = await orderService.createOrder({
       userId,
       items,
@@ -43,6 +44,7 @@ class OrderController {
       voucherOrder,
       voucherShipping,
       paymentMethod,
+      paymentProvider,
     });
     res.json(response.success('Order created successfully', created));
   });

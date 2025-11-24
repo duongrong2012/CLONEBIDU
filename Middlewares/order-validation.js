@@ -7,6 +7,7 @@ const {
   VOUCHER_STATUS,
   VOUCHER_TARGET,
   PAYMENT_METHOD,
+  PAYMENT_PROVIDER,
   ORDER_STATUS,
 } = require('../Utils/constant');
 // const Cart = require('../Models/cart.model');
@@ -653,12 +654,25 @@ const validateCreateOrder = [
     .bail()
     .custom(value => Object.values(PAYMENT_METHOD).includes(value))
     .withMessage(`paymentMethod must be one of: ${Object.values(PAYMENT_METHOD).join(', ')}`),
+  body('paymentProvider')
+    .if(body('paymentMethod').equals(PAYMENT_METHOD.ONLINE))
+    .exists()
+    .withMessage('paymentProvider is required when paymentMethod is ONLINE.')
+    .bail()
+    .isString()
+    .withMessage('paymentProvider must be a string.')
+    .bail()
+    .custom(value => Object.values(PAYMENT_PROVIDER).includes(value))
+    .withMessage(`paymentProvider must be one of: ${Object.values(PAYMENT_PROVIDER).join(', ')}`),
   // Reuse the same validators as preview
   ...validateOrderPreview,
   // Attach paymentMethod to validatedData
   (req, _res, next) => {
     if (!req.validatedData) req.validatedData = {};
     req.validatedData.paymentMethod = req.body.paymentMethod;
+    if (typeof req.body.paymentProvider === 'string') {
+      req.validatedData.paymentProvider = req.body.paymentProvider;
+    }
     next();
   },
 ];

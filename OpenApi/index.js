@@ -21,6 +21,8 @@ const productDir = path.join(__dirname, 'product');
 const productFiles = fs.readdirSync(productDir);
 const voucherDir = path.join(__dirname, 'voucher');
 const voucherFiles = fs.readdirSync(voucherDir);
+const paymentDir = path.join(__dirname, 'payment');
+const paymentFiles = fs.readdirSync(paymentDir);
 
 // Merge all YAML files
 const mergedSpec = {
@@ -90,5 +92,6 @@ mergeYamlFilesFromDir(userDir, userFiles);
 mergeYamlFilesFromDir(categoryDir, categoryFiles);
 mergeYamlFilesFromDir(productDir, productFiles);
 mergeYamlFilesFromDir(voucherDir, voucherFiles);
+mergeYamlFilesFromDir(paymentDir, paymentFiles);
 
 module.exports = mergedSpec;
