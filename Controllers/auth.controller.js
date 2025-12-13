@@ -1,5 +1,5 @@
 const authService = require('../Services/auth.service');
-const { TOKEN_TYPES, JWT_CONFIG } = require('../Utils/constant');
+const { TOKEN_TYPES, JWT_CONFIG, MESSAGES } = require('../Utils/constant');
 const response = require('../Utils/response.utils');
 
 class AuthController {
@@ -17,7 +17,7 @@ class AuthController {
 
       await authService.register(userData);
 
-      return res.status(201).json(response.success('User registered successfully'));
+      return res.status(201).json(response.success(MESSAGES.AUTH.REGISTER_SUCCESS));
     } catch (error) {
       next(error);
     }
