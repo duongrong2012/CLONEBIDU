@@ -14,6 +14,14 @@ jest.mock('../../Utils/jwt.utils', () => ({
 const { createTestApp, setupInMemoryMongo } = require('../index');
 const User = require('../../Models/user.model');
 const jwtUtils = require('../../Utils/jwt.utils');
+const {
+  authHeader,
+  seedUser,
+  authAs,
+  mockTokenInvalid,
+  mockTokenExpired,
+  mockDecodedId,
+} = require('../helpers/auth');
 const { MESSAGES, USER_ROLES, GENDERS } = require('../../Utils/constant');
 
 // Global setup for this module
@@ -162,23 +170,6 @@ describe('Register API - Admin (/auth-admin/register)', () => {
     gender: GENDERS.FEMALE,
   };
 
-  function authHeader(token = 'token') {
-    return { Authorization: `Bearer ${token}` };
-  }
-
-  async function createSuperAdmin(overrides = {}) {
-    const now = Date.now();
-    return User.create({
-      email: overrides.email || `sa.${now}@ex.com`,
-      password: overrides.password || 'Aa123456',
-      firstName: overrides.firstName || 'Super',
-      lastName: overrides.lastName || 'Admin',
-      gender: overrides.gender || GENDERS.MALE,
-      role: USER_ROLES.SUPER_ADMIN,
-      isActive: overrides.isActive !== undefined ? overrides.isActive : true,
-    });
-  }
-
   test('401 when missing token of super admin', async () => {
     const res = await request(app).post('/auth-admin/register').send(baseValidBody);
     expect(res.status).toBe(401);
@@ -186,9 +177,7 @@ describe('Register API - Admin (/auth-admin/register)', () => {
   });
 
   test('401 when invalid token', async () => {
-    jest.spyOn(jwtUtils, 'verifyToken').mockImplementation(() => {
-      throw new Error('invalid');
-    });
+    mockTokenInvalid(jwtUtils);
     const res = await request(app)
       .post('/auth-admin/register')
       .set(authHeader())
@@ -198,11 +187,7 @@ describe('Register API - Admin (/auth-admin/register)', () => {
   });
 
   test('401 when token expired', async () => {
-    jest.spyOn(jwtUtils, 'verifyToken').mockImplementation(() => {
-      const err = new Error('expired');
-      err.name = 'TokenExpiredError';
-      throw err;
-    });
+    mockTokenExpired(jwtUtils);
     const res = await request(app)
       .post('/auth-admin/register')
       .set(authHeader())
@@ -213,7 +198,7 @@ describe('Register API - Admin (/auth-admin/register)', () => {
 
   test('404 when user in token not found', async () => {
     const fakeId = new mongoose.Types.ObjectId();
-    jest.spyOn(jwtUtils, 'verifyToken').mockReturnValue({ _id: fakeId });
+    mockDecodedId(jwtUtils, fakeId);
     const res = await request(app)
       .post('/auth-admin/register')
       .set(authHeader())
@@ -223,16 +208,8 @@ describe('Register API - Admin (/auth-admin/register)', () => {
   });
 
   test('403 when role not SUPER_ADMIN', async () => {
-    const admin = await User.create({
-      email: 'admin@ex.com',
-      password: 'Aa123456',
-      firstName: 'Norm',
-      lastName: 'Admin',
-      gender: GENDERS.MALE,
-      role: USER_ROLES.ADMIN,
-      isActive: true,
-    });
-    jest.spyOn(jwtUtils, 'verifyToken').mockReturnValue({ _id: admin._id });
+    const admin = await seedUser({ role: USER_ROLES.ADMIN });
+    authAs(jwtUtils, admin);
     const res = await request(app)
       .post('/auth-admin/register')
       .set(authHeader())
@@ -242,8 +219,8 @@ describe('Register API - Admin (/auth-admin/register)', () => {
   });
 
   test('400 validation error after auth (missing firstName)', async () => {
-    const superAdmin = await createSuperAdmin();
-    jest.spyOn(jwtUtils, 'verifyToken').mockReturnValue({ _id: superAdmin._id });
+    const superAdmin = await seedUser({ role: USER_ROLES.SUPER_ADMIN });
+    authAs(jwtUtils, superAdmin);
     const body = { ...baseValidBody };
     delete body.firstName;
     const res = await request(app).post('/auth-admin/register').set(authHeader()).send(body);
@@ -252,17 +229,9 @@ describe('Register API - Admin (/auth-admin/register)', () => {
   });
 
   test('400 when new admin email already exists', async () => {
-    const superAdmin = await createSuperAdmin({ email: 'sa2@ex.com', lastName: 'Admin2' });
-    jest.spyOn(jwtUtils, 'verifyToken').mockReturnValue({ _id: superAdmin._id });
-    await User.create({
-      email: baseValidBody.email,
-      password: 'Aa123456',
-      firstName: 'Existing',
-      lastName: 'User',
-      gender: GENDERS.FEMALE,
-      role: USER_ROLES.BUYER,
-      isActive: true,
-    });
+    const superAdmin = await seedUser({ role: USER_ROLES.SUPER_ADMIN });
+    authAs(jwtUtils, superAdmin);
+    await seedUser({ email: baseValidBody.email, role: USER_ROLES.BUYER });
     const res = await request(app)
       .post('/auth-admin/register')
       .set(authHeader())
@@ -272,8 +241,8 @@ describe('Register API - Admin (/auth-admin/register)', () => {
   });
 
   test('201 when admin registration succeeds', async () => {
-    const superAdmin = await createSuperAdmin({ email: 'sa3@ex.com', lastName: 'Admin3' });
-    jest.spyOn(jwtUtils, 'verifyToken').mockReturnValue({ _id: superAdmin._id });
+    const superAdmin = await seedUser({ role: USER_ROLES.SUPER_ADMIN });
+    authAs(jwtUtils, superAdmin);
     const res = await request(app)
       .post('/auth-admin/register')
       .set(authHeader())

@@ -13,7 +13,7 @@ exports.createProduct = async (req, res) => {
   const productData = req.validatedData;
   productData.createdBy = req.user._id;
   const product = await productService.createProduct(productData);
-  return res.json(response.success(product));
+  return res.json(response.success('Product created successfully', product));
 };
 
 /**
@@ -41,7 +41,7 @@ exports.updateProduct = async (req, res) => {
   const { id } = req.params;
   const updateData = req.validatedData;
   const product = await productService.updateProduct(id, updateData);
-  return res.json(response.success(product, 'Product updated successfully'));
+  return res.json(response.success('Product updated successfully', product));
 };
 
 /**

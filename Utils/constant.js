@@ -58,7 +58,7 @@ const MESSAGES = {
     LOGOUT_SUCCESS: 'Logged out successfully',
     PASSWORD_CHANGED: 'Password changed successfully',
     INVALID_CREDENTIALS: 'Invalid email or password',
-    ACCOUNT_DEACTIVATED: 'Your account has been deactivated',
+    ACCOUNT_INACTIVE: 'Your account has been inactive',
     EMAIL_EXISTS: 'Email already exists',
     UNAUTHORIZED: 'Unauthorized access',
     FORBIDDEN: 'Forbidden access',
@@ -66,6 +66,8 @@ const MESSAGES = {
     INVALID_TOKEN: 'Invalid token',
     TOKEN_REQUIRED: 'Access token is required',
     REFRESH_TOKEN_REQUIRED: 'Refresh token is required',
+    PASSWORD_DUPLICATE: 'New password cannot be the same as the old password',
+    INVALID_PASSWORD: 'Invalid password',
   },
   USER: {
     NOT_FOUND: 'User not found',

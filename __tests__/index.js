@@ -9,18 +9,38 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const { MongoMemoryReplSet } = require('mongodb-memory-server');
 const { beforeAll, afterEach, afterAll } = require('@jest/globals');
 
 const routes = require('../Routes');
 const { errorHandler } = require('../Middlewares');
+const uploadRoute = require('../Routes/upload.route');
 
-function createTestApp() {
+/**
+ * Create an in-memory Express app for tests.
+ * - By default mounts only auth routes (fast startup).
+ * - You can enable other route groups via options.
+ * @param {{ mountAuth?: boolean, mountBuyer?: boolean, mountAdmin?: boolean, mountUpload?: boolean }} [options]
+ */
+function createTestApp(options = {}) {
+  const { mountAuth = true, mountBuyer = false, mountAdmin = false, mountUpload = false } = options;
   const app = express();
   app.use(express.json());
   app.use(cookieParser());
-  app.use('/auth-buyer', routes.authBuyerRoutes);
-  app.use('/auth-admin', routes.authAdminRoutes);
+
+  if (mountAuth) {
+    app.use('/auth-buyer', routes.authBuyerRoutes);
+    app.use('/auth-admin', routes.authAdminRoutes);
+  }
+  if (mountBuyer) {
+    app.use('/buyer', routes.buyerRoutes);
+  }
+  if (mountAdmin) {
+    app.use('/admin', routes.adminRoutes);
+  }
+  if (mountUpload) {
+    app.use('/api/upload', uploadRoute);
+  }
   app.use(errorHandler);
   return app;
 }
@@ -37,7 +57,10 @@ async function clearDatabase() {
 function setupInMemoryMongo() {
   let __mongoServer;
   beforeAll(async () => {
-    __mongoServer = await MongoMemoryServer.create();
+    // Use a replica set to support transactions (required by Product rating service)
+    __mongoServer = await MongoMemoryReplSet.create({
+      replSet: { count: 1 },
+    });
     const uri = __mongoServer.getUri();
     await mongoose.connect(uri);
   });
