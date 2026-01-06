@@ -3,6 +3,7 @@
     "watch:dev": "nodemon app.js",
     "start": "node app.js",
     "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

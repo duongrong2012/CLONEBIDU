@@ -20,6 +20,7 @@ const {
   mockTokenExpired,
   mockDecodedId,
 } = require('../helpers/auth');
+const { VALID_CHANGE_PASSWORD_BODY } = require('./mocks/change-password.mock');
 const { MESSAGES, GENDERS, USER_ROLES } = require('../../Utils/constant');
 
 setupInMemoryMongo();
@@ -36,10 +37,9 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
   });
 
   test('401 when missing access token', async () => {
-    const res = await request(app).post('/auth-buyer/change-password').send({
-      oldPassword: 'Aa123456',
-      newPassword: 'Bb123456',
-    });
+    const res = await request(app)
+      .post('/auth-buyer/change-password')
+      .send(VALID_CHANGE_PASSWORD_BODY);
     expect(res.status).toBe(401);
     expect(res.body.message).toBe(MESSAGES.AUTH.TOKEN_REQUIRED);
   });
@@ -49,7 +49,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('bad'))
-      .send({ oldPassword: 'Aa123456', newPassword: 'Bb123456' });
+      .send(VALID_CHANGE_PASSWORD_BODY);
     expect(res.status).toBe(401);
     expect(res.body.message).toBe(MESSAGES.AUTH.INVALID_TOKEN);
   });
@@ -59,7 +59,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('expired'))
-      .send({ oldPassword: 'Aa123456', newPassword: 'Bb123456' });
+      .send(VALID_CHANGE_PASSWORD_BODY);
     expect(res.status).toBe(401);
     expect(res.body.message).toBe(MESSAGES.AUTH.TOKEN_EXPIRED);
   });
@@ -69,7 +69,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('t'))
-      .send({ oldPassword: 'Aa123456', newPassword: 'Bb123456' });
+      .send(VALID_CHANGE_PASSWORD_BODY);
     expect(res.status).toBe(404);
     expect(res.body.message).toBe(MESSAGES.USER.NOT_FOUND);
   });
@@ -87,7 +87,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('t'))
-      .send({ oldPassword: 'Aa123456', newPassword: 'Bb123456' });
+      .send(VALID_CHANGE_PASSWORD_BODY);
     expect(res.status).toBe(403);
     expect(res.body.message).toBe(MESSAGES.AUTH.ACCOUNT_INACTIVE);
   });
@@ -112,7 +112,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('t'))
-      .send({ oldPassword: 'Aa123456', newPassword: invalidPwd });
+      .send({ ...VALID_CHANGE_PASSWORD_BODY, newPassword: invalidPwd });
     expect(res.status).toBe(400);
     expect(res.body.message).toBe(MESSAGES.VALIDATION.PASSWORD_LENGTH);
   });
@@ -129,7 +129,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('t'))
-      .send({ oldPassword: 'Aa123456', newPassword: 'Aa123456' });
+      .send({ ...VALID_CHANGE_PASSWORD_BODY, newPassword: VALID_CHANGE_PASSWORD_BODY.oldPassword });
     expect(res.status).toBe(400);
     expect(res.body.message).toBe(MESSAGES.AUTH.PASSWORD_DUPLICATE);
   });
@@ -146,7 +146,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('t'))
-      .send({ oldPassword: 'Cc123456', newPassword: 'Bb123456' });
+      .send({ ...VALID_CHANGE_PASSWORD_BODY, oldPassword: 'Cc123456' });
     expect(res.status).toBe(401);
     expect(res.body.message).toBe(MESSAGES.AUTH.INVALID_PASSWORD);
   });
@@ -163,7 +163,7 @@ describe('Change Password API - Buyer (/auth-buyer/change-password)', () => {
     const res = await request(app)
       .post('/auth-buyer/change-password')
       .set(authHeader('t'))
-      .send({ oldPassword: 'Aa123456', newPassword: 'Bb123456' });
+      .send(VALID_CHANGE_PASSWORD_BODY);
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('success');
     expect(res.body.message).toBe(MESSAGES.AUTH.PASSWORD_CHANGED);
