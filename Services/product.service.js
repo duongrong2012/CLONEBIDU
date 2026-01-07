@@ -1,6 +1,6 @@
 const BaseService = require('./base.service');
 const Product = require('../Models/product.model');
-const AppError = require('../Utils/error.utils');
+const { AppError } = require('../Utils/error.utils');
 const ProductRating = require('../Models/product-rating.model');
 const { MESSAGES } = require('../Utils/constant');
 
@@ -131,7 +131,10 @@ class ProductService extends BaseService {
         existingRating.comment = comment;
 
         // Update the user's rating in ratedUsers array
-        const userIndex = existingRating.ratedUsers.findIndex(ru => ru.user.toString() === userId);
+        const userIdStr = userId?.toString?.() ?? String(userId);
+        const userIndex = existingRating.ratedUsers.findIndex(
+          ru => ru.user.toString() === userIdStr
+        );
 
         if (userIndex !== -1) {
           existingRating.ratedUsers[userIndex].rating = rating;
