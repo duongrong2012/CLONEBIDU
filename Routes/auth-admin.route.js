@@ -8,7 +8,7 @@ const { USER_ROLES } = require('../Utils/constant');
 // Only super admin can register new admin
 router.post(
   '/register',
-  verifyToken(USER_ROLES.SUPER_ADMIN),
+  verifyToken([USER_ROLES.SUPER_ADMIN]),
   validateUserFields,
   authAdminController.register
 );
