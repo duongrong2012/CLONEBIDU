@@ -16,6 +16,7 @@ const jwtUtils = require('../../Utils/jwt.utils');
 const Product = require('../../Models/product.model');
 const Category = require('../../Models/category.model');
 const { authHeader, seedUser, authAs } = require('../helpers/auth');
+const { expectValidationError } = require('../helpers/expect');
 const { USER_ROLES, PRODUCT_STATUS, MESSAGES } = require('../../Utils/constant');
 
 setupInMemoryMongo();
@@ -30,22 +31,6 @@ describe('Product API - Create product (POST /admin/products)', () => {
   async function postCreate(body, role = USER_ROLES.SELLER) {
     await authAs(jwtUtils, await seedUser({ role }));
     return request(app).post('/admin/products').set(authHeader()).send(body);
-  }
-
-  function expectValidationError(res, expected) {
-    expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Validation failed');
-    expect(Array.isArray(res.body.errors)).toBe(true);
-
-    if (expected) {
-      const { field, message } = expected;
-      const found = res.body.errors.some(e => {
-        const sameField = field ? String(e.field).includes(field) : true;
-        const sameMsg = message ? e.message === message : true;
-        return sameField && sameMsg;
-      });
-      expect(found).toBe(true);
-    }
   }
 
   const baseValid = {

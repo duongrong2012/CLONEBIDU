@@ -15,6 +15,7 @@ const jwtUtils = require('../../Utils/jwt.utils');
 const Product = require('../../Models/product.model');
 const Category = require('../../Models/category.model');
 const { authHeader, seedUser, authAs } = require('../helpers/auth');
+const { expectValidationError } = require('../helpers/expect');
 const { USER_ROLES, PRODUCT_STATUS, MESSAGES } = require('../../Utils/constant');
 
 setupInMemoryMongo();
@@ -47,24 +48,12 @@ describe('Product API - Update product (PATCH /admin/products/:id)', () => {
 
   test('400 when product id invalid format', async () => {
     const res = await patchUpdate('not-an-id', { name: 'Valid Name' }, USER_ROLES.SELLER);
-    expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Validation failed');
-    expect(Array.isArray(res.body.errors)).toBe(true);
-    expect(
-      res.body.errors.some(e => e.field === 'id' && e.message === 'Invalid product ID format')
-    ).toBe(true);
+    expectValidationError(res, { field: 'id', message: 'Invalid product ID format' });
   });
 
   test('400 when no fields provided for update', async () => {
     const res = await patchUpdate('66f000000000000000000001', {}, USER_ROLES.SELLER);
-    expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Validation failed');
-    expect(Array.isArray(res.body.errors)).toBe(true);
-    expect(
-      res.body.errors.some(
-        e => e.field === 'general' && e.message === 'No fields provided for update'
-      )
-    ).toBe(true);
+    expectValidationError(res, { field: 'general', message: 'No fields provided for update' });
   });
 
   test('404 when product not found', async () => {
