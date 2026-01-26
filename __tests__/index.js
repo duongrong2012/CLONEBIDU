@@ -20,12 +20,13 @@ const uploadRoute = require('../Routes/upload.route');
  * Create an in-memory Express app for tests.
  * - By default mounts only auth routes (fast startup).
  * - You can enable other route groups via options.
- * @param {{ mountAuth?: boolean, mountBuyer?: boolean, mountAdmin?: boolean, mountUpload?: boolean, mountPayments?: boolean }} [options]
+ * @param {{ mountAuth?: boolean, mountBuyer?: boolean, mountSeller?: boolean, mountAdmin?: boolean, mountUpload?: boolean, mountPayments?: boolean }} [options]
  */
 function createTestApp(options = {}) {
   const {
     mountAuth = true,
     mountBuyer = false,
+    mountSeller = false,
     mountAdmin = false,
     mountUpload = false,
     mountPayments = false,
@@ -40,6 +41,9 @@ function createTestApp(options = {}) {
   }
   if (mountBuyer) {
     app.use('/buyer', routes.buyerRoutes);
+  }
+  if (mountSeller) {
+    app.use('/seller', routes.sellerRoutes);
   }
   if (mountAdmin) {
     app.use('/admin', routes.adminRoutes);
