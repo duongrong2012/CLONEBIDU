@@ -2,7 +2,7 @@ const { param, validationResult, query } = require('express-validator');
 const mongoose = require('mongoose');
 const Product = require('../Models/product.model');
 const User = require('../Models/user.model');
-const { response } = require('../Utils/response.utils');
+const response = require('../Utils/response.utils');
 const { HTTP_STATUS, PRODUCT_STATUS, MESSAGES } = require('../Utils/constant');
 const { AppError } = require('../Utils/error.utils');
 
@@ -58,7 +58,7 @@ const validateAddBookmark = [
       }
 
       // Check if user is trying to bookmark their own product
-      if (product.createdBy.toString() === user._id) {
+      if (product.createdBy.toString() === String(user._id)) {
         throw new AppError(MESSAGES.BOOKMARK.OWN_PRODUCT, HTTP_STATUS.BAD_REQUEST);
       }
 

@@ -204,4 +204,15 @@ describe('Product API - Get product by id (GET /admin/products/:productId)', () 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe('Product not available for public viewing');
   });
+
+  test('500 when get product by id throws', async () => {
+    const spy = jest.spyOn(Product, 'findById').mockRejectedValueOnce(new Error('db down'));
+    try {
+      const res = await request(app).get('/admin/products/66f000000000000000000001');
+      expect(res.status).toBe(500);
+      expect(res.body.message).toBe('db down');
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });

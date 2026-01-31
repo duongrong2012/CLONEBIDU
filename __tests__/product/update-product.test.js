@@ -118,6 +118,27 @@ describe('Product API - Update product (PATCH /admin/products/:id)', () => {
     ).toBe(true);
   });
 
+  test('400 when price is negative', async () => {
+    const res = await patchUpdate('66f000000000000000000001', { price: -1 });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors.some(e => e.field === 'price')).toBe(true);
+  });
+
+  test('400 when discountPrice is negative', async () => {
+    const res = await patchUpdate('66f000000000000000000001', { discountPrice: -1 });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors.some(e => e.field === 'discountPrice')).toBe(true);
+  });
+
+  test('400 when quantity is negative', async () => {
+    const res = await patchUpdate('66f000000000000000000001', { quantity: -1 });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors.some(e => e.field === 'quantity')).toBe(true);
+  });
+
   test('400 when categories has duplicates', async () => {
     const c = await Category.create({ name: 'Cat 1', slug: 'cat-1', isActive: true });
     const res = await patchUpdate('66f000000000000000000001', {
@@ -131,6 +152,20 @@ describe('Product API - Update product (PATCH /admin/products/:id)', () => {
         e => e.field === 'categories' && e.message === 'Duplicate category in categories array'
       )
     ).toBe(true);
+  });
+
+  test('400 when categories is not array or string', async () => {
+    const res = await patchUpdate('66f000000000000000000001', { categories: 123 });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors.some(e => e.field === 'categories')).toBe(true);
+  });
+
+  test('400 when categories contains invalid ObjectId', async () => {
+    const res = await patchUpdate('66f000000000000000000001', { categories: ['bad-id'] });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors.some(e => e.field === 'categories')).toBe(true);
   });
 
   test('400 when categories contains non-existing category', async () => {
@@ -147,6 +182,60 @@ describe('Product API - Update product (PATCH /admin/products/:id)', () => {
         e => e.field === 'categories' && e.message === 'One or more categories do not exist'
       )
     ).toBe(true);
+  });
+
+  test('200 when categories valid are applied', async () => {
+    const seller = await authAs(jwtUtils, await seedUser({ role: USER_ROLES.SELLER }));
+    const c = await Category.create({ name: 'Cat 1', slug: 'cat-1', isActive: true });
+    const p = await Product.create({
+      name: 'OwnCat',
+      description: 'd',
+      price: 10,
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+      quantity: 5,
+    });
+    const res = await request(app)
+      .patch(`/admin/products/${p._id}`)
+      .set(authHeader())
+      .send({ categories: [String(c._id)] });
+    expect(res.status).toBe(200);
+    expect(res.body.payload.categories.map(String)).toEqual([String(c._id)]);
+  });
+
+  test('200 when update product with valid variants updates quantity', async () => {
+    const seller = await authAs(jwtUtils, await seedUser({ role: USER_ROLES.SELLER }));
+    const p = await Product.create({
+      name: 'WithVariants',
+      description: 'd',
+      price: 10,
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+      quantity: 5,
+    });
+    const res = await request(app)
+      .patch(`/admin/products/${p._id}`)
+      .set(authHeader())
+      .send({
+        variantGroups: [
+          {
+            name: 'Color',
+            options: [{ value: 'Red' }],
+          },
+        ],
+        variantCombinations: [
+          {
+            options: [{ groupName: 'Color', optionValue: 'Red' }],
+            price: 10,
+            quantity: 5,
+            sku: 'SKU-RED',
+          },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.payload.quantity).toBe(5);
   });
 
   test('400 when admin sets status REJECTED but missing rejectedReason', async () => {
@@ -186,5 +275,20 @@ describe('Product API - Update product (PATCH /admin/products/:id)', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Product updated successfully');
     expect(res.body.payload.status).toBe(PRODUCT_STATUS.APPROVED);
+  });
+
+  test('500 when update product validation throws', async () => {
+    await authAs(jwtUtils, await seedUser({ role: USER_ROLES.SELLER }));
+    const spy = jest.spyOn(Product, 'findById').mockRejectedValueOnce(new Error('db down'));
+    try {
+      const res = await request(app)
+        .patch('/admin/products/66f000000000000000000001')
+        .set(authHeader())
+        .send({ name: 'Xy' });
+      expect(res.status).toBe(500);
+      expect(res.body.message).toBe('db down');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

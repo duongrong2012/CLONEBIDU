@@ -109,6 +109,26 @@ describe('Payment API - Sepay webhook (POST /payments/sepay/webhook)', () => {
     expect(await PaymentTransaction.countDocuments({})).toBe(0);
   });
 
+  test('soft-auth allows CIDR whitelist match', async () => {
+    process.env.SEPAY_ALLOWED_IPS = '10.0.0.0/24';
+    const order = await seedOrder();
+
+    const res = await request(app)
+      .post('/payments/sepay/webhook')
+      .set('Authorization', `Apikey ${process.env.SEPAY_WEBHOOK_API_KEY}`)
+      .set('x-forwarded-for', '10.0.0.5')
+      .send({
+        content: `DH${order._id}`,
+        transferType: 'in',
+        id: 'txn-cidr',
+        transferAmount: order.totalPrice,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    expect(await PaymentTransaction.countDocuments({ providerTransactionId: 'txn-cidr' })).toBe(1);
+  });
+
   test('valid inbound webhook marks order PAID and creates transaction', async () => {
     const order = await seedOrder({ totalPrice: 210000, subtotal: 210000 });
 
