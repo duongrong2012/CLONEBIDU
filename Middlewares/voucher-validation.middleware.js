@@ -797,18 +797,24 @@ const validateUpdateVoucherAdmin = [
 
   // RejectReason validation (required if status is REJECTED)
   body('rejectReason')
-    .optional()
+    .if(body('status').equals(VOUCHER_STATUS.REJECTED))
+    .exists()
+    .withMessage('Reject reason is required when status is REJECTED.')
     .bail()
     .isString()
     .withMessage('Field rejectReason must be a string.')
     .bail()
-    .custom((value, { req }) => {
-      const status = req.body.status;
-      if (status === VOUCHER_STATUS.REJECTED && (!value || value.trim() === '')) {
+    .custom(value => {
+      if (!value || String(value).trim() === '') {
         throw new Error('Reject reason is required when status is REJECTED.');
       }
       return true;
     }),
+  body('rejectReason')
+    .optional()
+    .bail()
+    .isString()
+    .withMessage('Field rejectReason must be a string.'),
 
   // Check for validation errors and format them
   (req, res, next) => {

@@ -16,7 +16,7 @@ module.exports = (req, res, next) => {
   if (page !== undefined) {
     const pageNum = Number(page);
     if (!Number.isInteger(pageNum) || pageNum <= 0) {
-      return next(new AppError(400, 'Page must be a positive integer.'));
+      return next(new AppError('Page must be a positive integer.', 400));
     }
     validated.page = pageNum;
   }
@@ -24,14 +24,14 @@ module.exports = (req, res, next) => {
   if (limit !== undefined) {
     const limitNum = Number(limit);
     if (!Number.isInteger(limitNum) || limitNum <= 0) {
-      return next(new AppError(400, 'Limit must be a positive integer.'));
+      return next(new AppError('Limit must be a positive integer.', 400));
     }
     validated.limit = limitNum;
   }
 
   if (parentCode !== undefined) {
     if (typeof parentCode !== 'string' || parentCode.trim() === '') {
-      return next(new AppError(400, 'parentCode must be a non-empty string.'));
+      return next(new AppError('parentCode must be a non-empty string.', 400));
     }
     validated.parentCode = parentCode.trim();
   }

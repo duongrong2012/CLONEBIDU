@@ -25,7 +25,7 @@ const {
 const voucherController = require('../Controllers/voucher.controller');
 const { USER_ROLES } = require('../Utils/constant');
 
-router.get('/users', verifyToken(USER_ROLES.SUPER_ADMIN), validateGetUsers(), getUsers);
+router.get('/users', verifyToken([USER_ROLES.SUPER_ADMIN]), validateGetUsers(), getUsers);
 router.patch(
   '/users/:id',
   verifyToken([USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN]),
