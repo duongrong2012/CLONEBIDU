@@ -37,7 +37,10 @@ class ProductService extends BaseService {
     if (query.isFeatured !== undefined)
       filter.isFeatured = query.isFeatured === 'true' || query.isFeatured === true;
     if (query.status) filter.status = query.status;
-    if (query.categories) filter.categories = { $in: query.categories };
+    if (query.categories) {
+      const categories = Array.isArray(query.categories) ? query.categories : [query.categories];
+      filter.categories = { $in: categories };
+    }
     if (query.createdBy) filter.createdBy = query.createdBy;
     if (query.quantityMin !== undefined || query.quantityMax !== undefined) {
       filter.quantity = {};

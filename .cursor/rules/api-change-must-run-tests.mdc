@@ -1,0 +1,21 @@
+---
+description: Khi sửa API thì phải chạy automation test trước khi kết thúc
+globs: {Routes,Controllers,Services,Middlewares}/**/*.js
+alwaysApply: false
+---
+
+# API Changes Require Automation Tests
+
+Khi phiên làm việc có chỉnh sửa file API (matching `Routes/`, `Controllers/`, `Services/`, `Middlewares/`):
+
+- Bắt buộc chạy automation test trước khi kết thúc task để đảm bảo không gây regression.
+- Ưu tiên chạy test liên quan trực tiếp phạm vi thay đổi trước (targeted suite).
+- Nếu thay đổi ảnh hưởng rộng, chạy thêm full test suite.
+- Chỉ bỏ qua bước chạy test khi user yêu cầu rõ ràng là không chạy test.
+
+Ví dụ lệnh:
+
+```bash
+npm test -- __tests__/product/get-products.test.js --runInBand
+npm test
+```
