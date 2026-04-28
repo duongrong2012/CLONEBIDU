@@ -4,6 +4,7 @@ const authAdminRoutes = require('./auth-admin.route');
 const sellerRoutes = require('./seller.route');
 const adminRoutes = require('./admin.route');
 const paymentRoutes = require('./payment.route');
+const demoRoutes = require('./demo.route');
 
 module.exports = {
   authBuyerRoutes,
@@ -12,4 +13,5 @@ module.exports = {
   sellerRoutes,
   adminRoutes,
   paymentRoutes,
+  demoRoutes,
 };

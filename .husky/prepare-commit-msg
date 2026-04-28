@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+log_file="$(dirname "$0")/prepare-commit-msg.log"
+printf "prepare-commit-msg ran at %s\n" "$(date)" >> "$log_file"

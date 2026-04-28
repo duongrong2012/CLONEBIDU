@@ -14,7 +14,7 @@
     "seed:ward": "node seeders/ward-seeder.js",
     "seed:update-voucher-target": "node seeders/update-voucher-target.js",
     "seed:product-variants-empty": "node seeders/update-product-variants-empty.js",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.816.0",
@@ -22,6 +22,7 @@
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dd-trace": "^5.98.0",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
     "express-validator": "^7.0.1",
@@ -30,6 +31,7 @@
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "mongoose-paginate-v2": "^1.9.1",
     "multer": "^2.0.0",
+    "pino": "^10.3.1",
     "slugify": "^1.6.6",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
@@ -49,9 +51,15 @@
     "globals": "^16.0.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
+    "lint-staged": "^16.2.7",
     "mongodb-memory-server": "^10.4.1",
     "nodemon": "^3.1.9",
     "prettier": "^3.5.3",
     "supertest": "^7.1.4"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix"
+    ]
   }
 }
