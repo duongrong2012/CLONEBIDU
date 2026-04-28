@@ -74,3 +74,9 @@ temp/
 # System Files
 .DS_Store
 Thumbs.db 
+
+# Assets
+public/images/
+
+#docs
+docs/

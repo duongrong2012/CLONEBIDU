@@ -1,0 +1,35 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+
+paths:
+  /demo/error-500:
+    get:
+      summary: Demo — cố ý trả HTTP 500 (logging / Datadog)
+      description: |
+        Route chỉ phục vụ demo: luôn gọi `next(AppError)` với mã 500.
+        Dùng để kiểm tra log mức error và cảnh báo trên Datadog. **Không** gọi trên môi trường production thật.
+      tags:
+        - Demo
+      responses:
+        '500':
+          description: Lỗi server có chủ đích (demo)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  code:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: Intentional demo server error (HTTP 500) for logging
+                  errors:
+                    type: string
+                    nullable: true
+                    example: null
