@@ -32,6 +32,12 @@ describe('Category API - Admin/Buer', () => {
     return admin;
   }
 
+  async function asSuperAdmin() {
+    const superAdmin = await seedUser({ role: USER_ROLES.SUPER_ADMIN });
+    await authAs(jwtUtils, superAdmin);
+    return superAdmin;
+  }
+
   test('401 when missing token for create category', async () => {
     const res = await request(app).post('/admin/categories').send({ name: 'Cat' });
     expect(res.status).toBe(401);
@@ -90,6 +96,17 @@ describe('Category API - Admin/Buer', () => {
     expect(res.status).toBe(201);
     expect(res.body.data).toBeTruthy();
     expect(res.body.data.name).toBe('Electronics');
+  });
+
+  test('201 super admin create category success', async () => {
+    await asSuperAdmin();
+    const res = await request(app)
+      .post('/admin/categories')
+      .set(authHeader())
+      .send({ name: 'Office' });
+    expect(res.status).toBe(201);
+    expect(res.body.data).toBeTruthy();
+    expect(res.body.data.name).toBe('Office');
   });
 
   test('400 when update category has no fields', async () => {

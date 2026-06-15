@@ -327,6 +327,105 @@ describe('Product API - Get products (GET /admin/products)', () => {
     expect(String(items[0]._id)).toBe(String(inRange._id));
   });
 
+  test('admin filters correctly with combined name + price', async () => {
+    const seller = await seedUser({ role: USER_ROLES.SELLER });
+    await authAs(jwtUtils, await seedUser({ role: USER_ROLES.ADMIN }));
+
+    const matched = await Product.create({
+      name: 'Laptop Pro 14',
+      description: 'd',
+      price: 1000,
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+    });
+    await Product.create({
+      name: 'Laptop Pro 16',
+      description: 'd',
+      price: 2200,
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+    });
+    await Product.create({
+      name: 'Phone Basic',
+      description: 'd',
+      price: 1000,
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+    });
+
+    const res = await request(app).get('/admin/products').set(authHeader()).query({
+      name: 'laptop',
+      priceMin: 900,
+      priceMax: 1200,
+    });
+
+    expect(res.status).toBe(200);
+    const items = res.body.payload.data;
+    expect(items.length).toBe(1);
+    expect(String(items[0]._id)).toBe(String(matched._id));
+  });
+
+  test('admin filters correctly with combined name + price + single category', async () => {
+    const seller = await seedUser({ role: USER_ROLES.SELLER });
+    await authAs(jwtUtils, await seedUser({ role: USER_ROLES.ADMIN }));
+    const catPhone = await Category.create({
+      name: 'Phone',
+      slug: `phone-${Date.now()}`,
+      isActive: true,
+    });
+    const catLaptop = await Category.create({
+      name: 'Laptop',
+      slug: `laptop-${Date.now()}`,
+      isActive: true,
+    });
+
+    const matched = await Product.create({
+      name: 'Laptop Air',
+      description: 'd',
+      price: 1200,
+      categories: [catLaptop._id],
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+    });
+    await Product.create({
+      name: 'Laptop Air',
+      description: 'd',
+      price: 1200,
+      categories: [catPhone._id],
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+    });
+    await Product.create({
+      name: 'Laptop Air Max',
+      description: 'd',
+      price: 2600,
+      categories: [catLaptop._id],
+      status: PRODUCT_STATUS.APPROVED,
+      isActive: true,
+      createdBy: seller._id,
+    });
+
+    const res = await request(app)
+      .get('/admin/products')
+      .set(authHeader())
+      .query({
+        name: 'laptop',
+        priceMin: 1000,
+        priceMax: 1500,
+        categories: String(catLaptop._id),
+      });
+
+    expect(res.status).toBe(200);
+    const items = res.body.payload.data;
+    expect(items.length).toBe(1);
+    expect(String(items[0]._id)).toBe(String(matched._id));
+  });
+
   test('invalid token behaves like guest (optionalAuth)', async () => {
     const seller = await seedUser({ role: USER_ROLES.SELLER });
     await Product.create({

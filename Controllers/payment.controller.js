@@ -20,8 +20,10 @@ class PaymentController {
       }
       await paymentService.handleSepayWebhook({ body: req.body, headers: req.headers });
     } catch (error) {
-      /* eslint-disable-next-line no-console */
-      console.error('Error handling Sepay webhook:', error);
+      if (process.env.NODE_ENV === 'production') {
+        /* eslint-disable-next-line no-console */
+        console.error('Error handling Sepay webhook:', error);
+      }
       // Always ACK 200 to prevent provider retries
     }
     res.json({ success: true });

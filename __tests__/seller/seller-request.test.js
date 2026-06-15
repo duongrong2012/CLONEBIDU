@@ -45,6 +45,12 @@ describe('Seller Requests API (/seller/requests)', () => {
     return admin;
   }
 
+  async function asSuperAdmin() {
+    const superAdmin = await seedUser({ role: USER_ROLES.SUPER_ADMIN });
+    await authAs(jwtUtils, superAdmin);
+    return superAdmin;
+  }
+
   function requestBody(overrides = {}) {
     return {
       birthday: overrides.birthday ?? '1990-01-01',
@@ -291,6 +297,33 @@ describe('Seller Requests API (/seller/requests)', () => {
     expect(String(admin._id)).toBeDefined();
   });
 
+  test('200 super admin gets all requests with filter', async () => {
+    const superAdmin = await asSuperAdmin();
+    const buyer = await seedUser({ role: USER_ROLES.BUYER });
+    await BecomeSellerRequest.create({
+      user: buyer._id,
+      status: SELLER_REQUEST_STATUS.PENDING,
+      birthday: new Date('1990-01-01'),
+      identityNumber: 'ID123',
+      bankName: 'Bank',
+      bankBranch: 'Branch',
+      national: 'VN',
+      shop: 'Shop',
+      shopName: 'Shop Name',
+      address: 'Addr',
+      province: 'P',
+      district: 'D',
+      ward: 'W',
+    });
+    const res = await request(app)
+      .get('/seller/all-requests')
+      .set(authHeader())
+      .query({ userId: String(buyer._id) });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Requests retrieved successfully');
+    expect(String(superAdmin._id)).toBeDefined();
+  });
+
   test('400 when process request status invalid', async () => {
     await asAdmin();
     const res = await request(app)
@@ -365,6 +398,35 @@ describe('Seller Requests API (/seller/requests)', () => {
 
   test('200 process request approved updates user role', async () => {
     await asAdmin();
+    const buyer = await seedUser({ role: USER_ROLES.BUYER });
+    const requestDoc = await BecomeSellerRequest.create({
+      user: buyer._id,
+      status: SELLER_REQUEST_STATUS.PENDING,
+      birthday: new Date('1990-01-01'),
+      identityNumber: 'ID123',
+      bankName: 'Bank',
+      bankBranch: 'Branch',
+      national: 'VN',
+      shop: 'Shop',
+      shopName: 'Shop Name',
+      address: 'Addr',
+      province: 'P',
+      district: 'D',
+      ward: 'W',
+    });
+    const res = await request(app)
+      .patch(`/seller/requests/${String(requestDoc._id)}`)
+      .set(authHeader())
+      .send({ status: SELLER_REQUEST_STATUS.APPROVED });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Request processed successfully');
+
+    const updatedUser = await User.findById(buyer._id);
+    expect(updatedUser.role).toBe(USER_ROLES.SELLER);
+  });
+
+  test('200 super admin process request approved updates user role', async () => {
+    await asSuperAdmin();
     const buyer = await seedUser({ role: USER_ROLES.BUYER });
     const requestDoc = await BecomeSellerRequest.create({
       user: buyer._id,

@@ -51,7 +51,15 @@ When implementing a new feature, ensure all components are included:
 
 ## 5. Everything must write in English (including code,comment,...)
 
-## 6. Never ask the user for confirmation about making a change (e.g. never ask questions like "Do you want me to do this?" or "Do you need me to help?"). Always automatically apply the change without asking for confirmation, to avoid wasting unnecessary requests.
+## 6. Clarification and Confirmation
+
+- Never ask the user for permission to make a change that they already requested.
+- A clarification question is not a confirmation question.
+- Ask before coding when required information is missing or when an assumption affects security, data integrity, business behavior, external integrations, or public API contracts.
+- Explicitly request user-provided configuration such as environment variables, API keys, OAuth client IDs/secrets, certificates, webhook secrets, redirect URIs, scopes, token types, and account-linking rules.
+- Never silently make a required security check optional because its environment variable is missing.
+- For required configuration, fail fast, update the safe environment template/documentation, test the missing-configuration path, and mention all required setup in the final response.
+- Do not describe a feature as complete or production-ready while required user-provided configuration is still unknown or undocumented.
 
 ## 7. API Design and Middleware Architecture
 
@@ -114,6 +122,10 @@ When implementing a new feature, ensure all components are included:
 7. Design middleware for data validation and filtering
 8. Ensure controllers only receive validated data from middleware
 9. Plan error handling strategy (predictable vs unexpected errors)
+10. Identify unclear security, business, integration, and API contract requirements
+11. Identify and request missing user-provided configuration before coding dependent behavior
+12. Document and validate every new required environment variable
+13. Test missing and invalid external configuration
 
 ## 8. Common Utility and Middleware Usage Rules
 

@@ -277,6 +277,27 @@ describe('Product API - Update product (PATCH /admin/products/:id)', () => {
     expect(res.body.payload.status).toBe(PRODUCT_STATUS.APPROVED);
   });
 
+  test('200 super admin can update other seller product and set status', async () => {
+    const seller = await seedUser({ role: USER_ROLES.SELLER });
+    const p = await Product.create({
+      name: 'ToApproveBySuperAdmin',
+      description: 'd',
+      price: 10,
+      status: PRODUCT_STATUS.PENDING,
+      isActive: true,
+      createdBy: seller._id,
+    });
+
+    const res = await patchUpdate(
+      String(p._id),
+      { status: PRODUCT_STATUS.APPROVED },
+      USER_ROLES.SUPER_ADMIN
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Product updated successfully');
+    expect(res.body.payload.status).toBe(PRODUCT_STATUS.APPROVED);
+  });
+
   test('500 when update product validation throws', async () => {
     await authAs(jwtUtils, await seedUser({ role: USER_ROLES.SELLER }));
     const spy = jest.spyOn(Product, 'findById').mockRejectedValueOnce(new Error('db down'));

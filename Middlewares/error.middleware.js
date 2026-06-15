@@ -11,7 +11,7 @@ const errorHandler = (err, req, res, _next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
   const errors = err.errors || null;
-  const status = err.status || (String(statusCode).startsWith('4') ? 'fail' : 'error');
+  const status = err.status || 'error';
 
   const logPayload = {
     message: 'Request failed',

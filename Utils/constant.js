@@ -55,9 +55,13 @@ const MESSAGES = {
   AUTH: {
     REGISTER_SUCCESS: 'User registered successfully',
     LOGIN_SUCCESS: 'Login successful',
+    SOCIAL_LOGIN_SUCCESS: 'Social login successful',
     LOGOUT_SUCCESS: 'Logged out successfully',
     PASSWORD_CHANGED: 'Password changed successfully',
     INVALID_CREDENTIALS: 'Invalid email or password',
+    INVALID_SOCIAL_TOKEN: 'Invalid social login token',
+    GOOGLE_SOCIAL_LOGIN_NOT_CONFIGURED: 'Google social login is not configured',
+    SOCIAL_ACCOUNT_CONFLICT: 'Email is already linked to a different social account',
     ACCOUNT_INACTIVE: 'Your account has been inactive',
     EMAIL_EXISTS: 'Email already exists',
     UNAUTHORIZED: 'Unauthorized access',

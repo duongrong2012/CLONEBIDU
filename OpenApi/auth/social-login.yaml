@@ -1,0 +1,162 @@
+openapi: 3.0.0
+info:
+  title: Bidu API Documentation
+  version: 1.0.0
+  description: API documentation for Bidu e-commerce platform
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  schemas:
+    SocialLoginRequest:
+      type: object
+      required:
+        - provider
+        - token
+      properties:
+        provider:
+          type: string
+          enum:
+            - google
+            - facebook
+          description: Social login provider. Use a Google ID token for Google and a Facebook access token for Facebook.
+          example: google
+        token:
+          type: string
+          description: Provider token returned by the client social login SDK.
+          example: eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...
+
+    SocialLoginResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: Social login successful
+        payload:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            refreshToken:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            tokenType:
+              type: string
+              example: Bearer
+            expiresIn:
+              type: string
+              example: 15m
+
+    SocialLoginErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Validation failed
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: provider
+              message:
+                type: string
+                example: Provider must be either google or facebook
+
+paths:
+  /auth-buyer/social-login:
+    post:
+      summary: Login or register with a social provider
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialLoginRequest'
+            examples:
+              google:
+                summary: Google social login
+                value:
+                  provider: google
+                  token: google-id-token
+              facebook:
+                summary: Facebook social login
+                value:
+                  provider: facebook
+                  token: facebook-access-token
+      responses:
+        '200':
+          description: Social login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLoginResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLoginErrorResponse'
+        '401':
+          description: Invalid provider token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLoginErrorResponse'
+              example:
+                status: error
+                code: 401
+                message: Invalid social login token
+                errors: null
+        '403':
+          description: Account inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLoginErrorResponse'
+              example:
+                status: error
+                code: 403
+                message: Your account has been inactive
+                errors: null
+        '409':
+          description: Social account conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLoginErrorResponse'
+              example:
+                status: error
+                code: 409
+                message: Email is already linked to a different social account
+                errors: null
+        '500':
+          description: Social login provider is not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLoginErrorResponse'
+              example:
+                status: error
+                code: 500
+                message: Google social login is not configured
+                errors: null

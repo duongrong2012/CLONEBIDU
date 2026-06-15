@@ -1,5 +1,6 @@
 const authService = require('../Services/auth.service');
 const { TOKEN_TYPES, JWT_CONFIG, MESSAGES } = require('../Utils/constant');
+const { catchAsync } = require('../Utils/error.utils');
 const response = require('../Utils/response.utils');
 
 class AuthController {
@@ -50,6 +51,28 @@ class AuthController {
       next(error);
     }
   };
+
+  /**
+   * Login user with a social provider token
+   * @param {Object} req - Express request object
+   * @param {Object} req.validatedData - Validated social login data from middleware
+   * @param {string} req.validatedData.provider - Social login provider
+   * @param {string} req.validatedData.token - Provider token
+   * @param {Object} res - Express response object
+   * @returns {Object} Response with authentication tokens
+   */
+  socialLogin = catchAsync(async (req, res) => {
+    const result = await authService.socialLogin(req.validatedData);
+
+    return res.json(
+      response.success(MESSAGES.AUTH.SOCIAL_LOGIN_SUCCESS, {
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+        tokenType: TOKEN_TYPES.BEARER,
+        expiresIn: JWT_CONFIG.ACCESS_TOKEN.EXPIRES_IN,
+      })
+    );
+  });
 
   /**
    * Refresh access token
