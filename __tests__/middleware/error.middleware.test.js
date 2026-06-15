@@ -5,7 +5,7 @@ const errorHandler = require('../../Middlewares/error.middleware');
 const { AppError } = require('../../Utils/error.utils');
 
 describe('Error middleware', () => {
-  test('handles AppError with fail status', () => {
+  test('handles AppError with error status', () => {
     const err = new AppError('Bad', 400);
     const res = {
       status(code) {
@@ -19,7 +19,7 @@ describe('Error middleware', () => {
     };
     errorHandler(err, {}, res, () => {});
     expect(res.statusCode).toBe(400);
-    expect(res.payload.status).toBe('fail');
+    expect(res.payload.status).toBe('error');
     expect(res.payload.message).toBe('Bad');
   });
 

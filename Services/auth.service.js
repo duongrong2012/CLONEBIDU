@@ -1,10 +1,18 @@
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const axios = require('axios');
 
 const { AppError } = require('../Utils/error.utils');
-const { MESSAGES, TOKEN_TYPES } = require('../Utils/constant');
+const { MESSAGES, TOKEN_TYPES, AUTH_PROVIDERS } = require('../Utils/constant');
 const User = require('../Models/user.model');
 const { generateToken } = require('../Utils/jwt.utils');
 const validationUtils = require('../Utils/validation.utils');
+
+const SOCIAL_PROVIDER_ID_FIELDS = {
+  [AUTH_PROVIDERS.GOOGLE]: 'googleId',
+  [AUTH_PROVIDERS.FACEBOOK]: 'facebookId',
+};
+
 class AuthService {
   /**
    * Register a new user
@@ -60,6 +68,198 @@ class AuthService {
         refreshToken,
       },
     };
+  }
+
+  /**
+   * Login or register a buyer with a verified social provider token
+   */
+  async socialLogin(socialLoginData) {
+    const profile = await this.verifySocialToken(socialLoginData.provider, socialLoginData.token);
+    const user = await this.findOrCreateSocialUser(profile);
+
+    const accessToken = generateToken(user, TOKEN_TYPES.ACCESS);
+    const refreshToken = generateToken(user, TOKEN_TYPES.REFRESH);
+
+    return {
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    };
+  }
+
+  /**
+   * Verify a social provider token and normalize the returned user profile
+   */
+  async verifySocialToken(provider, token) {
+    if (provider === AUTH_PROVIDERS.GOOGLE) {
+      return this.verifyGoogleToken(token);
+    }
+
+    if (provider === AUTH_PROVIDERS.FACEBOOK) {
+      return this.verifyFacebookToken(token);
+    }
+
+    throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+  }
+
+  /**
+   * Verify Google ID token with Google's tokeninfo endpoint
+   */
+  async verifyGoogleToken(token) {
+    try {
+      const allowedClientIds = this.getGoogleClientIds();
+      const { data } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
+        params: { id_token: token },
+      });
+
+      console.log('data.aud ', data.aud);
+
+      if (
+        !data?.sub ||
+        !data?.email ||
+        (data.email_verified !== true && data.email_verified !== 'true') ||
+        !allowedClientIds.includes(data.aud)
+      ) {
+        throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+      }
+
+      return this.normalizeSocialProfile({
+        provider: AUTH_PROVIDERS.GOOGLE,
+        providerId: data.sub,
+        email: data.email,
+        firstName: data.given_name,
+        lastName: data.family_name,
+        name: data.name,
+        avatar: data.picture,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+    }
+  }
+
+  /**
+   * Get the allowlist of Google OAuth client IDs for all supported platforms
+   */
+  getGoogleClientIds() {
+    const clientIds = (process.env.GOOGLE_CLIENT_IDS || '')
+      .split(',')
+      .map(clientId => clientId.trim())
+      .filter(Boolean);
+
+    if (clientIds.length === 0) {
+      throw new AppError(MESSAGES.AUTH.GOOGLE_SOCIAL_LOGIN_NOT_CONFIGURED, 500);
+    }
+
+    return clientIds;
+  }
+
+  /**
+   * Verify Facebook access token with Facebook Graph API
+   */
+  async verifyFacebookToken(token) {
+    try {
+      const { data } = await axios.get('https://graph.facebook.com/me', {
+        params: {
+          fields: 'id,email,first_name,last_name,name,picture.type(large)',
+          access_token: token,
+        },
+      });
+
+      if (!data?.id || !data?.email) {
+        throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+      }
+
+      return this.normalizeSocialProfile({
+        provider: AUTH_PROVIDERS.FACEBOOK,
+        providerId: data.id,
+        email: data.email,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        name: data.name,
+        avatar: data.picture?.data?.url,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+    }
+  }
+
+  /**
+   * Normalize social profile fields into the user model shape
+   */
+  normalizeSocialProfile(profile) {
+    const email = profile.email.toLowerCase();
+    const fallbackName = email.split('@')[0] || 'Social User';
+    const nameParts = (profile.name || fallbackName).trim().split(/\s+/);
+    const fallbackFirstName = nameParts.shift() || 'Social';
+    const fallbackLastName = nameParts.join(' ') || 'User';
+
+    return {
+      provider: profile.provider,
+      providerId: profile.providerId,
+      email,
+      firstName: profile.firstName || fallbackFirstName,
+      lastName: profile.lastName || fallbackLastName,
+      avatar: profile.avatar || null,
+    };
+  }
+
+  /**
+   * Find an existing social user, link the provider if needed, or create a new account
+   */
+  async findOrCreateSocialUser(profile) {
+    const providerIdField = SOCIAL_PROVIDER_ID_FIELDS[profile.provider];
+    let user = await User.findOne({ [providerIdField]: profile.providerId });
+
+    if (!user) {
+      user = await User.findOne({ email: profile.email });
+    }
+
+    if (!user) {
+      return User.create({
+        email: profile.email,
+        password: this.generateSocialPassword(),
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        avatar: profile.avatar,
+        [providerIdField]: profile.providerId,
+        authProvider: profile.provider,
+        isEmailVerified: true,
+      });
+    }
+
+    if (!user.isActive) {
+      throw new AppError(MESSAGES.AUTH.ACCOUNT_INACTIVE, 403);
+    }
+
+    if (user[providerIdField] && user[providerIdField] !== profile.providerId) {
+      throw new AppError(MESSAGES.AUTH.SOCIAL_ACCOUNT_CONFLICT, 409);
+    }
+
+    if (!user[providerIdField]) {
+      user[providerIdField] = profile.providerId;
+    }
+    if (!user.avatar && profile.avatar) {
+      user.avatar = profile.avatar;
+    }
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+    }
+
+    return user.save();
+  }
+
+  /**
+   * Generate an unusable local password for social-only accounts
+   */
+  generateSocialPassword() {
+    return `${crypto.randomBytes(24).toString('hex')}Aa1`;
   }
 
   /**

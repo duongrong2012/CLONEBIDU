@@ -44,6 +44,12 @@ describe('Upload API - /api/upload', () => {
     return admin;
   }
 
+  async function asSuperAdmin() {
+    const superAdmin = await seedUser({ role: USER_ROLES.SUPER_ADMIN });
+    await authAs(jwtUtils, superAdmin);
+    return superAdmin;
+  }
+
   async function asSeller() {
     const seller = await seedUser({ role: USER_ROLES.SELLER });
     await authAs(jwtUtils, seller);
@@ -319,5 +325,18 @@ describe('Upload API - /api/upload', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Category image updated successfully');
     expect(res.body.payload.image).toBe('u');
+  });
+
+  test('200 super admin update category image success', async () => {
+    await asSuperAdmin();
+    const category = await Category.create({ name: 'CatSuper', slug: 'cat-super', level: 0 });
+    const media = await Media.create({ url: 'u-super', type: MEDIA_TYPE.IMAGE });
+    const res = await request(app)
+      .patch(`/api/upload/category/${String(category._id)}/image`)
+      .set(authHeader())
+      .send({ mediaId: String(media._id) });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe('Category image updated successfully');
+    expect(res.body.payload.image).toBe('u-super');
   });
 });

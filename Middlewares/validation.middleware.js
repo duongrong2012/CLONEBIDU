@@ -1,5 +1,5 @@
 const { AppError } = require('../Utils/error.utils');
-const { MESSAGES, REGEX_PATTERNS, GENDERS } = require('../Utils/constant');
+const { MESSAGES, REGEX_PATTERNS, GENDERS, AUTH_PROVIDERS } = require('../Utils/constant');
 const { body, validationResult, query, param } = require('express-validator');
 const validationUtils = require('../Utils/validation.utils');
 const { HTTP_STATUS } = require('../Utils/constant');
@@ -119,6 +119,39 @@ const validateBuyerLogin = [
         .status(HTTP_STATUS.BAD_REQUEST)
         .json(response.error('Validation failed', HTTP_STATUS.BAD_REQUEST, errors.array()));
     }
+    next();
+  },
+];
+
+/**
+ * Middleware to validate social login request body
+ * Validates provider and token, then stores filtered data for controller usage
+ */
+const validateSocialLogin = [
+  body('provider')
+    .notEmpty()
+    .withMessage('Provider is required')
+    .bail()
+    .isIn([AUTH_PROVIDERS.GOOGLE, AUTH_PROVIDERS.FACEBOOK])
+    .withMessage('Provider must be either google or facebook'),
+
+  body('token')
+    .notEmpty()
+    .withMessage('Social login token is required')
+    .bail()
+    .isString()
+    .withMessage('Social login token must be a string'),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new AppError('Validation failed', 400, mapExpressValidatorErrors(errors)));
+    }
+
+    req.validatedData = {
+      provider: req.body.provider,
+      token: req.body.token,
+    };
     next();
   },
 ];
@@ -1513,6 +1546,7 @@ const validateGetProductById = [
 module.exports = {
   validateUserFields,
   validateBuyerLogin,
+  validateSocialLogin,
   validateUpdateProfile,
   validateSellerRequest,
   validatePaginationQuery,

@@ -43,6 +43,12 @@ describe('Voucher API - Admin (/admin/vouchers)', () => {
     return admin;
   }
 
+  async function asSuperAdmin() {
+    const superAdmin = await seedUser({ role: USER_ROLES.SUPER_ADMIN });
+    await authAs(jwtUtils, superAdmin);
+    return superAdmin;
+  }
+
   function createBody(overrides = {}) {
     const start = overrides.startDate ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
     const end = overrides.endDate ?? new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -84,6 +90,29 @@ describe('Voucher API - Admin (/admin/vouchers)', () => {
     expect(res.body.payload.code).toBe('ADMIN_FIXED_1');
     expect(res.body.payload.source).toBe(VOUCHER_SOURCE.SYSTEM);
     expect(String(res.body.payload.createdBy)).toBe(String(admin._id));
+  });
+
+  test('200 create voucher (SYSTEM) by super admin', async () => {
+    const superAdmin = await asSuperAdmin();
+    const seller = await seedUser({ role: USER_ROLES.SELLER });
+
+    const res = await request(app)
+      .post('/admin/vouchers')
+      .set(authHeader())
+      .send(
+        createBody({
+          code: 'SUPER_ADMIN_FIXED_1',
+          applicableSellers: [String(seller._id)],
+          isPublic: true,
+          status: VOUCHER_STATUS.APPROVED,
+        })
+      );
+
+    expect(res.status).toBe(200);
+    expect(res.body.payload).toBeTruthy();
+    expect(res.body.payload.code).toBe('SUPER_ADMIN_FIXED_1');
+    expect(res.body.payload.source).toBe(VOUCHER_SOURCE.SYSTEM);
+    expect(String(res.body.payload.createdBy)).toBe(String(superAdmin._id));
   });
 
   test('200 create voucher trims description and accepts explicit isActive/isPublic', async () => {

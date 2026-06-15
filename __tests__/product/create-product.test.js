@@ -86,6 +86,22 @@ describe('Product API - Create product (POST /admin/products)', () => {
     expect(String(res.body.payload.createdBy)).toBe(String(admin._id));
   });
 
+  test('200 super admin can set status', async () => {
+    const superAdmin = await authAs(jwtUtils, await seedUser({ role: USER_ROLES.SUPER_ADMIN }));
+    const res = await request(app)
+      .post('/admin/products')
+      .set(authHeader())
+      .send({
+        ...baseValid,
+        status: PRODUCT_STATUS.APPROVED,
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('success');
+    expect(res.body.message).toBe('Product created successfully');
+    expect(res.body.payload.status).toBe(PRODUCT_STATUS.APPROVED);
+    expect(String(res.body.payload.createdBy)).toBe(String(superAdmin._id));
+  });
+
   // --- Express-validator validations (each validation = one test) ---
 
   test('400 when name too short (min 2)', async () => {

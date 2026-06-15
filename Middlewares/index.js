@@ -1,6 +1,10 @@
 const errorHandler = require('./error.middleware');
 const requestLogger = require('./request-logger.middleware');
-const { validateUserFields, validateBuyerLogin } = require('./validation.middleware');
+const {
+  validateUserFields,
+  validateBuyerLogin,
+  validateSocialLogin,
+} = require('./validation.middleware');
 const { verifyRefreshToken } = require('./auth.middleware');
 const {
   validateAddBookmark,
@@ -13,6 +17,7 @@ module.exports = {
   requestLogger,
   validateUserFields,
   validateBuyerLogin,
+  validateSocialLogin,
   verifyRefreshToken,
   validateAddBookmark,
   validateRemoveBookmark,

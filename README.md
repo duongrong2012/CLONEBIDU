@@ -51,6 +51,7 @@ npm run dev
 ### Create Super Admin Account
 
 To create a super admin account, follow these steps:
+
 1. Run the following command in your terminal:
 
    ```bash
@@ -68,6 +69,7 @@ npm run seed:update-product-status
 ```
 
 This command executes the seeder script located at `seeders/update-product-status.js`, which:
+
 - Finds all products that don't have a `status` field
 - Updates them to have `status = PENDING`
 - Adds `rejectedReason = null` for consistency
@@ -84,11 +86,13 @@ npm run seed:update-voucher-target
 ```
 
 This command executes `seeders/update-voucher-target.js`, which:
+
 - Finds all vouchers where `target` is missing or null
 - Sets `target = ORDER_DISCOUNT` as the default
 - Verifies the update and prints a short summary
 
 Notes:
+
 - Safe to run multiple times; only updates vouchers without a `target` field
 - Requires a valid `MONGO_URI` in your `.env`
 
@@ -101,11 +105,13 @@ npm run seed:product-variants-empty
 ```
 
 This command executes `seeders/update-product-variants-empty.js`, which:
+
 - Finds products where `variantGroups`/`variantCombinations` are missing or not arrays
 - Sets both fields to empty arrays: `variantGroups: []`, `variantCombinations: []`
 - Prints how many documents were modified
 
 Notes:
+
 - Safe to run multiple times; only updates documents that need fixing
 - Requires `MONGO_URI` configured in `.env`
 
@@ -126,11 +132,13 @@ npm run seed:province
 - You should see `Provinces seeded successfully!` if the operation completes without errors.
 
 **Alternatively, you can run the script directly:**
+
 ```bash
 node seeders/province-seeder.js
 ```
 
 ### Notes
+
 - This operation is destructive: it will delete all existing provinces before importing.
 - Make sure your database connection string is correct and you have the necessary permissions.
 
@@ -151,11 +159,13 @@ npm run seed:ward
 - You should see `Wards seeded successfully!` if the operation completes without errors.
 
 **Alternatively, you can run the script directly:**
+
 ```bash
 node seeders/ward-seeder.js
 ```
 
 ### Notes
+
 - This operation is destructive: it will delete all existing wards before importing.
 - Make sure your database connection string is correct and you have the necessary permissions.
 
@@ -185,6 +195,23 @@ node seeders/ward-seeder.js
     "password": "password123"
   }
   ```
+
+#### Social Login
+
+- **POST** `/auth-buyer/social-login`
+- Request body:
+  ```json
+  {
+    "provider": "google",
+    "token": "google-id-token"
+  }
+  ```
+- Google clients must send an ID token.
+- Configure every allowed Google OAuth client ID using one comma-separated environment variable:
+  ```env
+  GOOGLE_CLIENT_IDS=web-client-id.apps.googleusercontent.com,android-client-id.apps.googleusercontent.com,ios-client-id.apps.googleusercontent.com
+  ```
+- Requests are rejected unless the token audience matches one of the configured client IDs.
 
 #### Logout
 
