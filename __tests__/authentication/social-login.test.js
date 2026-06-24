@@ -22,6 +22,16 @@ setupInMemoryMongo();
 describe('Social Login API - Buyer (/auth-buyer/social-login)', () => {
   let app;
   const originalGoogleClientIds = process.env.GOOGLE_CLIENT_IDS;
+  const originalZaloAppId = process.env.ZALO_APP_ID;
+  const originalZaloAppSecret = process.env.ZALO_APP_SECRET;
+
+  const restoreEnv = (key, value) => {
+    if (value === undefined) {
+      delete process.env[key];
+      return;
+    }
+    process.env[key] = value;
+  };
 
   beforeAll(() => {
     app = createTestApp();
@@ -31,17 +41,17 @@ describe('Social Login API - Buyer (/auth-buyer/social-login)', () => {
     jest.clearAllMocks();
     process.env.GOOGLE_CLIENT_IDS =
       'google-web-client-id, google-android-client-id, google-ios-client-id';
+    process.env.ZALO_APP_ID = 'zalo-app-id';
+    process.env.ZALO_APP_SECRET = 'zalo-app-secret';
     jwtUtils.generateToken
       .mockReturnValueOnce('access-token-123')
       .mockReturnValueOnce('refresh-token-456');
   });
 
   afterAll(() => {
-    if (originalGoogleClientIds === undefined) {
-      delete process.env.GOOGLE_CLIENT_IDS;
-      return;
-    }
-    process.env.GOOGLE_CLIENT_IDS = originalGoogleClientIds;
+    restoreEnv('GOOGLE_CLIENT_IDS', originalGoogleClientIds);
+    restoreEnv('ZALO_APP_ID', originalZaloAppId);
+    restoreEnv('ZALO_APP_SECRET', originalZaloAppSecret);
   });
 
   test('400 when provider is invalid', async () => {
@@ -54,7 +64,7 @@ describe('Social Login API - Buyer (/auth-buyer/social-login)', () => {
     expect(res.body.message).toBe('Validation failed');
     expect(res.body.errors).toContainEqual({
       field: 'provider',
-      message: 'Provider must be either google or facebook',
+      message: 'Provider must be google, facebook, or zalo',
     });
     expect(axios.get).not.toHaveBeenCalled();
   });
@@ -241,5 +251,134 @@ describe('Social Login API - Buyer (/auth-buyer/social-login)', () => {
     expect(user.facebookId).toBe('facebook-user-123');
     expect(user.authProvider).toBe(AUTH_PROVIDERS.FACEBOOK);
     expect(user.avatar).toBe('https://example.com/facebook-avatar.png');
+  });
+
+  test('200 creates user with placeholder email when Facebook does not return email', async () => {
+    axios.get.mockResolvedValueOnce({
+      data: {
+        id: 'facebook-no-email-123',
+        first_name: 'Facebook',
+        last_name: 'No Email',
+        picture: {
+          data: {
+            url: 'https://example.com/facebook-no-email-avatar.png',
+          },
+        },
+      },
+    });
+
+    const res = await request(app)
+      .post('/auth-buyer/social-login')
+      .send({ provider: AUTH_PROVIDERS.FACEBOOK, token: 'facebook-access-token' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.payload.accessToken).toBe('access-token-123');
+
+    const user = await User.findOne({ email: 'facebook-no-email-123@biduclone.com' });
+    expect(user).toBeTruthy();
+    expect(user.facebookId).toBe('facebook-no-email-123');
+    expect(user.authProvider).toBe(AUTH_PROVIDERS.FACEBOOK);
+    expect(user.isEmailVerified).toBe(false);
+    expect(user.avatar).toBe('https://example.com/facebook-no-email-avatar.png');
+  });
+
+  test('400 when Zalo code verifier is missing', async () => {
+    const res = await request(app)
+      .post('/auth-buyer/social-login')
+      .send({ provider: AUTH_PROVIDERS.ZALO, token: 'zalo-authorization-code' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.status).toBe('error');
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors).toContainEqual({
+      field: 'codeVerifier',
+      message: 'Zalo code verifier is required',
+    });
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  test('500 when Zalo configuration is missing', async () => {
+    delete process.env.ZALO_APP_SECRET;
+
+    const res = await request(app).post('/auth-buyer/social-login').send({
+      provider: AUTH_PROVIDERS.ZALO,
+      token: 'zalo-authorization-code',
+      codeVerifier: 'zalo-code-verifier',
+    });
+
+    expect(res.status).toBe(500);
+    expect(res.body.status).toBe('error');
+    expect(res.body.message).toBe(MESSAGES.AUTH.ZALO_SOCIAL_LOGIN_NOT_CONFIGURED);
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  test('200 creates user from Zalo authorization code and returns tokens', async () => {
+    axios.post.mockResolvedValueOnce({
+      data: {
+        access_token: 'zalo-access-token',
+      },
+    });
+    axios.get.mockResolvedValueOnce({
+      data: {
+        id: 'zalo-user-123',
+        name: 'Zalo User',
+        picture: {
+          data: {
+            url: 'https://example.com/zalo-avatar.png',
+          },
+        },
+      },
+    });
+
+    const res = await request(app).post('/auth-buyer/social-login').send({
+      provider: AUTH_PROVIDERS.ZALO,
+      token: 'zalo-authorization-code',
+      codeVerifier: 'zalo-code-verifier',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('success');
+    expect(res.body.payload).toMatchObject({
+      accessToken: 'access-token-123',
+      refreshToken: 'refresh-token-456',
+      tokenType: TOKEN_TYPES.BEARER,
+    });
+
+    expect(axios.post).toHaveBeenCalledWith(
+      'https://oauth.zaloapp.com/v4/access_token',
+      expect.any(URLSearchParams),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          secret_key: 'zalo-app-secret',
+        }),
+      })
+    );
+
+    const tokenParams = axios.post.mock.calls[0][1];
+    expect(tokenParams.get('app_id')).toBe('zalo-app-id');
+    expect(tokenParams.get('code')).toBe('zalo-authorization-code');
+    expect(tokenParams.get('grant_type')).toBe('authorization_code');
+    expect(tokenParams.get('code_verifier')).toBe('zalo-code-verifier');
+
+    expect(axios.get).toHaveBeenCalledWith(
+      'https://graph.zalo.me/v2.0/me',
+      expect.objectContaining({
+        params: {
+          fields: 'id,name,picture',
+        },
+        headers: {
+          access_token: 'zalo-access-token',
+        },
+      })
+    );
+
+    const user = await User.findOne({ email: 'zalo-user-123@biduclone.com' });
+    expect(user).toBeTruthy();
+    expect(user.zaloId).toBe('zalo-user-123');
+    expect(user.authProvider).toBe(AUTH_PROVIDERS.ZALO);
+    expect(user.isEmailVerified).toBe(false);
+    expect(user.firstName).toBe('Zalo');
+    expect(user.lastName).toBe('User');
+    expect(user.avatar).toBe('https://example.com/zalo-avatar.png');
   });
 });

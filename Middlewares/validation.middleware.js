@@ -132,8 +132,8 @@ const validateSocialLogin = [
     .notEmpty()
     .withMessage('Provider is required')
     .bail()
-    .isIn([AUTH_PROVIDERS.GOOGLE, AUTH_PROVIDERS.FACEBOOK])
-    .withMessage('Provider must be either google or facebook'),
+    .isIn([AUTH_PROVIDERS.GOOGLE, AUTH_PROVIDERS.FACEBOOK, AUTH_PROVIDERS.ZALO])
+    .withMessage('Provider must be google, facebook, or zalo'),
 
   body('token')
     .notEmpty()
@@ -142,15 +142,27 @@ const validateSocialLogin = [
     .isString()
     .withMessage('Social login token must be a string'),
 
+  body('codeVerifier').optional().isString().withMessage('Zalo code verifier must be a string'),
+
   (req, res, next) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return next(new AppError('Validation failed', 400, mapExpressValidatorErrors(errors)));
+    const formattedErrors = mapExpressValidatorErrors(errors);
+
+    if (req.body.provider === AUTH_PROVIDERS.ZALO && !req.body.codeVerifier) {
+      formattedErrors.push({
+        field: 'codeVerifier',
+        message: 'Zalo code verifier is required',
+      });
+    }
+
+    if (formattedErrors.length > 0) {
+      return next(new AppError('Validation failed', 400, formattedErrors));
     }
 
     req.validatedData = {
       provider: req.body.provider,
       token: req.body.token,
+      codeVerifier: req.body.codeVerifier,
     };
     next();
   },

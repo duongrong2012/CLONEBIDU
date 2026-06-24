@@ -11,7 +11,10 @@ const validationUtils = require('../Utils/validation.utils');
 const SOCIAL_PROVIDER_ID_FIELDS = {
   [AUTH_PROVIDERS.GOOGLE]: 'googleId',
   [AUTH_PROVIDERS.FACEBOOK]: 'facebookId',
+  [AUTH_PROVIDERS.ZALO]: 'zaloId',
 };
+
+const SOCIAL_PLACEHOLDER_EMAIL_DOMAIN = 'biduclone.com';
 
 class AuthService {
   /**
@@ -74,7 +77,11 @@ class AuthService {
    * Login or register a buyer with a verified social provider token
    */
   async socialLogin(socialLoginData) {
-    const profile = await this.verifySocialToken(socialLoginData.provider, socialLoginData.token);
+    const profile = await this.verifySocialToken(
+      socialLoginData.provider,
+      socialLoginData.token,
+      socialLoginData.codeVerifier
+    );
     const user = await this.findOrCreateSocialUser(profile);
 
     const accessToken = generateToken(user, TOKEN_TYPES.ACCESS);
@@ -91,13 +98,17 @@ class AuthService {
   /**
    * Verify a social provider token and normalize the returned user profile
    */
-  async verifySocialToken(provider, token) {
+  async verifySocialToken(provider, token, codeVerifier) {
     if (provider === AUTH_PROVIDERS.GOOGLE) {
       return this.verifyGoogleToken(token);
     }
 
     if (provider === AUTH_PROVIDERS.FACEBOOK) {
       return this.verifyFacebookToken(token);
+    }
+
+    if (provider === AUTH_PROVIDERS.ZALO) {
+      return this.verifyZaloToken(token, codeVerifier);
     }
 
     throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
@@ -112,8 +123,6 @@ class AuthService {
       const { data } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
         params: { id_token: token },
       });
-
-      console.log('data.aud ', data.aud);
 
       if (
         !data?.sub ||
@@ -169,7 +178,7 @@ class AuthService {
         },
       });
 
-      if (!data?.id || !data?.email) {
+      if (!data?.id) {
         throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
       }
 
@@ -191,10 +200,79 @@ class AuthService {
   }
 
   /**
+   * Verify Zalo authorization code and load the Zalo user profile
+   */
+  async verifyZaloToken(token, codeVerifier) {
+    try {
+      const { appId, appSecret } = this.getZaloConfig();
+      const tokenParams = new URLSearchParams({
+        app_id: appId,
+        code: token,
+        grant_type: 'authorization_code',
+        code_verifier: codeVerifier,
+      });
+
+      const { data: tokenData } = await axios.post(
+        'https://oauth.zaloapp.com/v4/access_token',
+        tokenParams,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            secret_key: appSecret,
+          },
+        }
+      );
+
+      if (!tokenData?.access_token) {
+        throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+      }
+
+      const { data } = await axios.get('https://graph.zalo.me/v2.0/me', {
+        params: {
+          fields: 'id,name,picture',
+        },
+        headers: {
+          access_token: tokenData.access_token,
+        },
+      });
+
+      if (!data?.id) {
+        throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+      }
+
+      return this.normalizeSocialProfile({
+        provider: AUTH_PROVIDERS.ZALO,
+        providerId: data.id,
+        name: data.name,
+        avatar: data.picture?.data?.url || data.picture,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(MESSAGES.AUTH.INVALID_SOCIAL_TOKEN, 401);
+    }
+  }
+
+  /**
+   * Get required Zalo OAuth app configuration
+   */
+  getZaloConfig() {
+    const appId = process.env.ZALO_APP_ID?.trim();
+    const appSecret = process.env.ZALO_APP_SECRET?.trim();
+
+    if (!appId || !appSecret) {
+      throw new AppError(MESSAGES.AUTH.ZALO_SOCIAL_LOGIN_NOT_CONFIGURED, 500);
+    }
+
+    return { appId, appSecret };
+  }
+
+  /**
    * Normalize social profile fields into the user model shape
    */
   normalizeSocialProfile(profile) {
-    const email = profile.email.toLowerCase();
+    const { email, isPlaceholderEmail } = this.resolveSocialEmail(profile);
     const fallbackName = email.split('@')[0] || 'Social User';
     const nameParts = (profile.name || fallbackName).trim().split(/\s+/);
     const fallbackFirstName = nameParts.shift() || 'Social';
@@ -207,6 +285,26 @@ class AuthService {
       firstName: profile.firstName || fallbackFirstName,
       lastName: profile.lastName || fallbackLastName,
       avatar: profile.avatar || null,
+      isPlaceholderEmail,
+    };
+  }
+
+  /**
+   * Resolve social profile email or create an internal placeholder email
+   */
+  resolveSocialEmail(profile) {
+    const email = profile.email?.trim();
+
+    if (email) {
+      return {
+        email: email.toLowerCase(),
+        isPlaceholderEmail: false,
+      };
+    }
+
+    return {
+      email: `${String(profile.providerId).toLowerCase()}@${SOCIAL_PLACEHOLDER_EMAIL_DOMAIN}`,
+      isPlaceholderEmail: true,
     };
   }
 
@@ -221,6 +319,10 @@ class AuthService {
       user = await User.findOne({ email: profile.email });
     }
 
+    if (user && profile.isPlaceholderEmail && !user[providerIdField]) {
+      throw new AppError(MESSAGES.AUTH.SOCIAL_ACCOUNT_CONFLICT, 409);
+    }
+
     if (!user) {
       return User.create({
         email: profile.email,
@@ -230,7 +332,7 @@ class AuthService {
         avatar: profile.avatar,
         [providerIdField]: profile.providerId,
         authProvider: profile.provider,
-        isEmailVerified: true,
+        isEmailVerified: !profile.isPlaceholderEmail,
       });
     }
 
@@ -248,7 +350,7 @@ class AuthService {
     if (!user.avatar && profile.avatar) {
       user.avatar = profile.avatar;
     }
-    if (!user.isEmailVerified) {
+    if (!user.isEmailVerified && !profile.isPlaceholderEmail) {
       user.isEmailVerified = true;
     }
 
