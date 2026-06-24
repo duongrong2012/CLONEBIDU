@@ -21,12 +21,17 @@ components:
           enum:
             - google
             - facebook
-          description: Social login provider. Use a Google ID token for Google and a Facebook access token for Facebook.
+            - zalo
+          description: Social login provider. Use a Google ID token for Google, a Facebook access token for Facebook, and a Zalo authorization code for Zalo.
           example: google
         token:
           type: string
-          description: Provider token returned by the client social login SDK.
+          description: Provider token returned by the client social login SDK. For Zalo, send the authorization code in this field.
           example: eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...
+        codeVerifier:
+          type: string
+          description: Required only for Zalo login. This must match the PKCE code verifier used by the client to get the Zalo authorization code.
+          example: zalo-pkce-code-verifier
 
     SocialLoginResponse:
       type: object
@@ -78,7 +83,7 @@ components:
                 example: provider
               message:
                 type: string
-                example: Provider must be either google or facebook
+                example: Provider must be google, facebook, or zalo
 
 paths:
   /auth-buyer/social-login:
@@ -103,6 +108,12 @@ paths:
                 value:
                   provider: facebook
                   token: facebook-access-token
+              zalo:
+                summary: Zalo social login
+                value:
+                  provider: zalo
+                  token: zalo-authorization-code
+                  codeVerifier: zalo-pkce-code-verifier
       responses:
         '200':
           description: Social login successful
@@ -126,7 +137,7 @@ paths:
                 status: error
                 code: 401
                 message: Invalid social login token
-                errors: null
+                errors: []
         '403':
           description: Account inactive
           content:
@@ -137,7 +148,7 @@ paths:
                 status: error
                 code: 403
                 message: Your account has been inactive
-                errors: null
+                errors: []
         '409':
           description: Social account conflict
           content:
@@ -148,7 +159,7 @@ paths:
                 status: error
                 code: 409
                 message: Email is already linked to a different social account
-                errors: null
+                errors: []
         '500':
           description: Social login provider is not configured
           content:
@@ -158,5 +169,5 @@ paths:
               example:
                 status: error
                 code: 500
-                message: Google social login is not configured
-                errors: null
+                message: Zalo social login is not configured
+                errors: []

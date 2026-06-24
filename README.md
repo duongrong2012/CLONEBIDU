@@ -24,6 +24,9 @@ PORT=3000
 MONGO_URI=mongodb://localhost:27017/your-database
 JWT_SECRET=your-jwt-secret
 JWT_REFRESH_SECRET=your-jwt-refresh-secret
+GOOGLE_CLIENT_IDS=web-client-id.apps.googleusercontent.com,android-client-id.apps.googleusercontent.com,ios-client-id.apps.googleusercontent.com
+ZALO_APP_ID=your-zalo-app-id
+ZALO_APP_SECRET=your-zalo-app-secret
 
 # SePay payment gateway
 SEPAY_BASE_URL=https://sandbox-api.sepay.vn
@@ -212,6 +215,25 @@ node seeders/ward-seeder.js
   GOOGLE_CLIENT_IDS=web-client-id.apps.googleusercontent.com,android-client-id.apps.googleusercontent.com,ios-client-id.apps.googleusercontent.com
   ```
 - Requests are rejected unless the token audience matches one of the configured client IDs.
+- Facebook clients must send an access token. If Facebook does not return an email, the backend creates an internal placeholder email using:
+  ```text
+  [social-id]@biduclone.com
+  ```
+  Placeholder emails are internal identifiers and are not marked as verified user emails.
+- Zalo clients must send an authorization code in `token` and the original PKCE code verifier in `codeVerifier`:
+  ```json
+  {
+    "provider": "zalo",
+    "token": "zalo-authorization-code",
+    "codeVerifier": "zalo-pkce-code-verifier"
+  }
+  ```
+- Configure the Zalo app credentials:
+  ```env
+  ZALO_APP_ID=your-zalo-app-id
+  ZALO_APP_SECRET=your-zalo-app-secret
+  ```
+- Zalo accounts use the same internal placeholder email format because Zalo profile data does not provide an email for this login flow.
 
 #### Logout
 

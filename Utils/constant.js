@@ -43,6 +43,7 @@ const AUTH_PROVIDERS = {
   LOCAL: 'local',
   GOOGLE: 'google',
   FACEBOOK: 'facebook',
+  ZALO: 'zalo',
 };
 
 const TOKEN_TYPES = {
@@ -61,6 +62,7 @@ const MESSAGES = {
     INVALID_CREDENTIALS: 'Invalid email or password',
     INVALID_SOCIAL_TOKEN: 'Invalid social login token',
     GOOGLE_SOCIAL_LOGIN_NOT_CONFIGURED: 'Google social login is not configured',
+    ZALO_SOCIAL_LOGIN_NOT_CONFIGURED: 'Zalo social login is not configured',
     SOCIAL_ACCOUNT_CONFLICT: 'Email is already linked to a different social account',
     ACCOUNT_INACTIVE: 'Your account has been inactive',
     EMAIL_EXISTS: 'Email already exists',

@@ -74,6 +74,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       sparse: true,
     },
+    zaloId: {
+      type: String,
+      sparse: true,
+    },
     authProvider: {
       type: String,
       enum: Object.values(AUTH_PROVIDERS),
