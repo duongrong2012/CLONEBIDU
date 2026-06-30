@@ -169,6 +169,93 @@ const validateSocialLogin = [
 ];
 
 /**
+ * Middleware to validate forgot password request body
+ * Validates email, then stores filtered data for controller usage
+ */
+const validateForgotPassword = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage(MESSAGES.VALIDATION.REQUIRED_EMAIL)
+    .bail()
+    .custom(value => {
+      try {
+        validationUtils.validateEmail(value);
+        return true;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    }),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new AppError('Validation failed', 400, mapExpressValidatorErrors(errors)));
+    }
+
+    req.validatedData = {
+      email: req.body.email.toLowerCase(),
+    };
+    next();
+  },
+];
+
+/**
+ * Middleware to validate reset password request body
+ * Validates email, reset OTP, and new password, then stores filtered data for controller usage
+ */
+const validateResetPassword = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage(MESSAGES.VALIDATION.REQUIRED_EMAIL)
+    .bail()
+    .custom(value => {
+      try {
+        validationUtils.validateEmail(value);
+        return true;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    }),
+
+  body('otp')
+    .trim()
+    .notEmpty()
+    .withMessage(MESSAGES.VALIDATION.REQUIRED_RESET_OTP)
+    .bail()
+    .matches(/^\d{6}$/)
+    .withMessage(MESSAGES.VALIDATION.RESET_OTP_FORMAT),
+
+  body('newPassword')
+    .notEmpty()
+    .withMessage(MESSAGES.VALIDATION.REQUIRED_NEW_PASSWORD)
+    .bail()
+    .custom(value => {
+      try {
+        validationUtils.validatePassword(value);
+        return true;
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    }),
+
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(new AppError('Validation failed', 400, mapExpressValidatorErrors(errors)));
+    }
+
+    req.validatedData = {
+      email: req.body.email.toLowerCase(),
+      otp: req.body.otp,
+      newPassword: req.body.newPassword,
+    };
+    next();
+  },
+];
+
+/**
  * Middleware to validate user profile update request
  * Validates:
  * - firstName: 2-50 characters, letters and spaces only
@@ -1559,6 +1646,8 @@ module.exports = {
   validateUserFields,
   validateBuyerLogin,
   validateSocialLogin,
+  validateForgotPassword,
+  validateResetPassword,
   validateUpdateProfile,
   validateSellerRequest,
   validatePaginationQuery,

@@ -4,6 +4,8 @@ const {
   validateUserFields,
   validateBuyerLogin,
   validateSocialLogin,
+  validateForgotPassword,
+  validateResetPassword,
 } = require('./validation.middleware');
 const { verifyRefreshToken } = require('./auth.middleware');
 const {
@@ -11,6 +13,7 @@ const {
   validateRemoveBookmark,
   validateGetBookmarks,
 } = require('./bookmark-validation');
+const { forgotPasswordRateLimit } = require('./forgot-password-rate-limit.middleware');
 
 module.exports = {
   errorHandler,
@@ -18,6 +21,9 @@ module.exports = {
   validateUserFields,
   validateBuyerLogin,
   validateSocialLogin,
+  validateForgotPassword,
+  forgotPasswordRateLimit,
+  validateResetPassword,
   verifyRefreshToken,
   validateAddBookmark,
   validateRemoveBookmark,

@@ -75,6 +75,45 @@ class AuthController {
   });
 
   /**
+   * Request password reset instructions
+   * @param {Object} req - Express request object
+   * @param {Object} req.validatedData - Validated forgot password data
+   * @param {string} req.validatedData.email - User email
+   * @param {Object} res - Express response object
+   * @returns {Object} Generic success response
+   */
+  forgotPassword = catchAsync(async (req, res) => {
+    const result = await authService.forgotPassword(req.validatedData.email);
+    const payload =
+      process.env.NODE_ENV === 'production'
+        ? null
+        : {
+            otp: result.otp,
+            otpExpires: result.otpExpires,
+            emailSent: result.emailSent,
+          };
+
+    return res.json(response.success(MESSAGES.AUTH.PASSWORD_RESET_REQUESTED, payload));
+  });
+
+  /**
+   * Reset password with a reset OTP
+   * @param {Object} req - Express request object
+   * @param {Object} req.validatedData - Validated reset password data
+   * @param {string} req.validatedData.email - User email
+   * @param {string} req.validatedData.otp - Password reset OTP
+   * @param {string} req.validatedData.newPassword - New password
+   * @param {Object} res - Express response object
+   * @returns {Object} Success response
+   */
+  resetPassword = catchAsync(async (req, res) => {
+    const { email, otp, newPassword } = req.validatedData;
+    const result = await authService.resetPassword(email, otp, newPassword);
+
+    return res.json(response.success(result.message));
+  });
+
+  /**
    * Refresh access token
    * @param {Object} req - Express request object
    * @param {Object} req.cookies - Cookies object

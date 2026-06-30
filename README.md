@@ -28,6 +28,16 @@ GOOGLE_CLIENT_IDS=web-client-id.apps.googleusercontent.com,android-client-id.app
 ZALO_APP_ID=your-zalo-app-id
 ZALO_APP_SECRET=your-zalo-app-secret
 
+# Password reset
+PASSWORD_RESET_EXPIRES_MINUTES=15
+FORGOT_PASSWORD_RATE_LIMIT_MS=30000
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+EMAIL_FROM="Bidu Support <no-reply@example.com>"
+
 # SePay payment gateway
 SEPAY_BASE_URL=https://sandbox-api.sepay.vn
 SEPAY_PARTNER_CODE=your-partner-code
@@ -234,6 +244,35 @@ node seeders/ward-seeder.js
   ZALO_APP_SECRET=your-zalo-app-secret
   ```
 - Zalo accounts use the same internal placeholder email format because Zalo profile data does not provide an email for this login flow.
+
+#### Forgot Password
+
+- **POST** `/auth-buyer/forgot-password`
+- Request body:
+  ```json
+  {
+    "email": "user@example.com"
+  }
+  ```
+- The response is intentionally generic so callers cannot check whether an email exists.
+- The endpoint accepts one request per email every 30 seconds and returns `429` with `Retry-After` when limited.
+- In production, SMTP delivery must be configured with `SMTP_HOST`, `SMTP_PORT`, and `EMAIL_FROM`. `SMTP_USER` and `SMTP_PASS` are optional for SMTP relays that do not require authentication.
+- The backend emails a 6-digit OTP to the user. Store no raw OTP server-side; only the hashed OTP is persisted until expiry.
+- In non-production environments without SMTP configured, the raw OTP is returned in the response payload to support local development and automated tests.
+
+#### Reset Password
+
+- **POST** `/auth-buyer/reset-password`
+- Request body:
+  ```json
+  {
+    "email": "user@example.com",
+    "otp": "123456",
+    "newPassword": "NewPassword123"
+  }
+  ```
+- `otp` must be the 6-digit code from the forgot-password email.
+- `newPassword` must satisfy the existing password rule: at least six characters, one uppercase letter, one lowercase letter, and one number.
 
 #### Logout
 

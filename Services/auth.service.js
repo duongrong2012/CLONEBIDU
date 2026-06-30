@@ -7,6 +7,7 @@ const { MESSAGES, TOKEN_TYPES, AUTH_PROVIDERS } = require('../Utils/constant');
 const User = require('../Models/user.model');
 const { generateToken } = require('../Utils/jwt.utils');
 const validationUtils = require('../Utils/validation.utils');
+const emailService = require('./email.service');
 
 const SOCIAL_PROVIDER_ID_FIELDS = {
   [AUTH_PROVIDERS.GOOGLE]: 'googleId',
@@ -15,6 +16,31 @@ const SOCIAL_PROVIDER_ID_FIELDS = {
 };
 
 const SOCIAL_PLACEHOLDER_EMAIL_DOMAIN = 'biduclone.com';
+const PASSWORD_RESET_OTP_DIGITS = 6;
+const DEFAULT_PASSWORD_RESET_EXPIRES_MINUTES = 15;
+
+function generatePasswordResetOtp() {
+  const max = 10 ** PASSWORD_RESET_OTP_DIGITS;
+  return crypto.randomInt(0, max).toString().padStart(PASSWORD_RESET_OTP_DIGITS, '0');
+}
+
+function hashPasswordResetOtp(otp) {
+  return crypto.createHash('sha256').update(otp).digest('hex');
+}
+
+function getPasswordResetExpiryDate() {
+  const configuredMinutes = Number.parseInt(process.env.PASSWORD_RESET_EXPIRES_MINUTES, 10);
+  const minutes =
+    Number.isInteger(configuredMinutes) && configuredMinutes > 0
+      ? configuredMinutes
+      : DEFAULT_PASSWORD_RESET_EXPIRES_MINUTES;
+
+  return new Date(Date.now() + minutes * 60 * 1000);
+}
+
+function isProduction() {
+  return process.env.NODE_ENV === 'production';
+}
 
 class AuthService {
   /**
@@ -362,6 +388,91 @@ class AuthService {
    */
   generateSocialPassword() {
     return `${crypto.randomBytes(24).toString('hex')}Aa1`;
+  }
+
+  /**
+   * Create a password reset OTP and send reset instructions when email is configured
+   */
+  async forgotPassword(email) {
+    const emailConfigured = emailService.isConfigured();
+
+    if (isProduction() && !emailConfigured) {
+      throw new AppError(MESSAGES.AUTH.PASSWORD_RESET_EMAIL_NOT_CONFIGURED, 500);
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user || !user.isActive) {
+      return {
+        otp: null,
+        otpExpires: null,
+        emailSent: false,
+      };
+    }
+
+    const otp = generatePasswordResetOtp();
+
+    user.passwordResetOtp = hashPasswordResetOtp(otp);
+    user.passwordResetExpires = getPasswordResetExpiryDate();
+    await user.save({ validateBeforeSave: false });
+
+    let emailSent = false;
+
+    if (emailConfigured) {
+      try {
+        emailSent = await emailService.sendPasswordResetOtp({
+          to: user.email,
+          otp,
+          expiresAt: user.passwordResetExpires,
+        });
+      } catch (error) {
+        console.log('error ', error);
+        user.passwordResetOtp = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save({ validateBeforeSave: false });
+        throw new AppError(MESSAGES.AUTH.PASSWORD_RESET_EMAIL_FAILED, 500);
+      }
+    }
+
+    return {
+      otp,
+      otpExpires: user.passwordResetExpires,
+      emailSent,
+    };
+  }
+
+  /**
+   * Reset a user password with a valid reset OTP
+   */
+  async resetPassword(email, otp, newPassword) {
+    validationUtils.validatePassword(newPassword);
+
+    const hashedOtp = hashPasswordResetOtp(otp);
+    const user = await User.findOne({
+      email,
+      passwordResetOtp: hashedOtp,
+      passwordResetExpires: { $gt: new Date() },
+    }).select('+password +passwordResetOtp +passwordResetExpires');
+
+    if (!user) {
+      throw new AppError(MESSAGES.AUTH.PASSWORD_RESET_INVALID_OR_EXPIRED, 400);
+    }
+
+    if (!user.isActive) {
+      throw new AppError(MESSAGES.AUTH.ACCOUNT_INACTIVE, 403);
+    }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new AppError(MESSAGES.AUTH.PASSWORD_DUPLICATE, 400);
+    }
+
+    user.password = newPassword;
+    user.passwordResetOtp = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    return { message: MESSAGES.AUTH.PASSWORD_RESET_SUCCESS };
   }
 
   /**

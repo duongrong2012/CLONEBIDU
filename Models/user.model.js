@@ -83,6 +83,14 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(AUTH_PROVIDERS),
       default: AUTH_PROVIDERS.LOCAL,
     },
+    passwordResetOtp: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
     isActive: {
       type: Boolean,
       default: true,

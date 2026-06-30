@@ -66,6 +66,14 @@ const MESSAGES = {
     SOCIAL_ACCOUNT_CONFLICT: 'Email is already linked to a different social account',
     ACCOUNT_INACTIVE: 'Your account has been inactive',
     EMAIL_EXISTS: 'Email already exists',
+    PASSWORD_RESET_REQUESTED:
+      'If the email exists, password reset instructions have been generated',
+    PASSWORD_RESET_SUCCESS: 'Password reset successfully',
+    PASSWORD_RESET_INVALID_OR_EXPIRED: 'Password reset OTP is invalid or has expired',
+    PASSWORD_RESET_EMAIL_NOT_CONFIGURED: 'Password reset email delivery is not configured',
+    PASSWORD_RESET_EMAIL_FAILED: 'Unable to send password reset instructions',
+    PASSWORD_RESET_RATE_LIMITED:
+      'Please wait 30 seconds before requesting another password reset OTP',
     UNAUTHORIZED: 'Unauthorized access',
     FORBIDDEN: 'Forbidden access',
     TOKEN_EXPIRED: 'Token has expired',
@@ -99,6 +107,9 @@ const MESSAGES = {
     BIRTHDAY_FUTURE: 'Birthday cannot be in the future',
     BIRTHDAY_AGE: 'User must be at least 13 years old',
     NO_FIELDS_TO_UPDATE: 'No fields provided for update',
+    REQUIRED_RESET_OTP: 'Password reset OTP is required',
+    RESET_OTP_FORMAT: 'Password reset OTP must be a 6-digit code',
+    REQUIRED_NEW_PASSWORD: 'New password is required',
   },
   PRODUCT: {
     NOT_FOUND: 'Product not found',
@@ -192,6 +203,7 @@ const HTTP_STATUS = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
+  TOO_MANY_REQUESTS: 429,
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500,
 };
